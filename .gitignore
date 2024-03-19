@@ -5,6 +5,7 @@
 *.csv
 *.pyc
 *.pkl
+*.ipynb
 
 logs/*
 wandb/*
