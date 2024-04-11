@@ -4,6 +4,7 @@
 *.pth
 *.csv
 *.pyc
+*.gz
 *.pkl
 *.ipynb
 .gitignore

@@ -103,7 +103,7 @@ class Trainer:
             train_accs.append(train_acc)
 
             # Validation
-            if (epoch + 1) % 10 == 0:
+            if (epoch + 1) % 100 == 0:
                 val_loss, val_acc = self.validate(valid_loader)
                 val_losses.append(val_loss)
                 val_accs.append(val_acc)
