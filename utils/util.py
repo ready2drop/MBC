@@ -39,6 +39,6 @@ def get_model_parameters(dict):
         dict['model_parameters'] = {'weights':'ViT_L_16_Weights.IMAGENET1K_SWAG_E2E_V1'}
         dict['num_features'] = 1024
         pass
-        
+    
    
     return dict

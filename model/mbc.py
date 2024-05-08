@@ -4,9 +4,9 @@ from torchvision import models
 import torch.nn.functional as F
 
 
-class MultiModalClassifier(nn.Module):
+class MultiModalbileductClassifier(nn.Module):
     def __init__(self, num_classes, num_features, model_architecture, model_parameters):
-        super(MultiModalClassifier, self).__init__()
+        super(MultiModalbileductClassifier, self).__init__()
         # Load pre-trained backbone model
         backbone_model = getattr(models, model_architecture)(**model_parameters)
         

@@ -3,10 +3,10 @@ import torch.nn as nn
 from torch.nn.parallel import DataParallel
 
 from dataset.dataloader import getloader
-from model.mbc import MultiModalClassifier
+from model.mbc import MultiModalbileductClassifier
+from model.ibc import ImageBileductClassifier
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
-
 
 from timeit import default_timer as timer
 from tqdm import tqdm
@@ -148,7 +148,7 @@ class Trainer:
 
 
 # Create DataLoader and define model, optimizer, scheduler, loss_fn, and device
-model = MultiModalClassifier(PARAMS['num_classes'], PARAMS['num_features'], PARAMS['model_architecture'], PARAMS['model_parameters'])
+model = MultiModalbileductClassifier(PARAMS['num_classes'], PARAMS['num_features'], PARAMS['model_architecture'], PARAMS['model_parameters'])
 model = DataParallel(model, device_ids=[i for i in range(PARAMS['num_gpus'])]).to(device)
 loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 

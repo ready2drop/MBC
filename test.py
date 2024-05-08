@@ -3,10 +3,13 @@ import torch.nn as nn
 from torch.nn.parallel import DataParallel
 
 from dataset.dataloader import getloader
-from model.mbc import MultiModalClassifier
+from dataset.bc_dataloader import getloader_bc
+from model.mbc import MultiModalbileductClassifier
+from model.ibc import ImageBileductClassifier
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
 
+from monai.inferers import SlidingWindowInferer
 
 from timeit import default_timer as timer
 from tqdm import tqdm
@@ -33,7 +36,7 @@ parser.add_argument("--scheduler", default='StepLR', type=str, help="Type of Lea
 parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='RawData/jpeg-melanoma-512x512/', type=str, help="Directory of data")
-parser.add_argument("--log_dir", default='output/', type=str, help="log directory")
+parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 
 args = parser.parse_args()
 args.log_dir = logdir(args.log_dir)
@@ -51,11 +54,14 @@ PARAMS = {
     'data_path' : args.data_path,
     'log_dir' : args.log_dir,
 }
-PARAMS = get_model_parameters(PARAMS)
+# PARAMS = get_model_parameters(PARAMS)
 
-wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = PARAMS['model_architecture'], config=PARAMS)
+# wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = PARAMS['model_architecture'], config=PARAMS)
 
-class infer:
+
+    
+# Training and Valaidation
+class Tester:
     def __init__(self, model, optimizer, scheduler, loss_fn, device, data_path, batch_size, log_dir):
         self.model = model
         self.optimizer = optimizer
@@ -65,65 +71,32 @@ class infer:
         self.data_path = data_path
         self.batch_size = batch_size
         self.log_dir = log_dir
-    
-    def train(self, epochs, log_dir):
-        test_loader = getloader(self.data_path, batch_size=self.batch_size, mode='train')
 
-        train_losses, val_losses, train_accs, val_accs = [], [], [], []
-
-        for epoch in range(epochs):
-
-            val_loss, val_acc = self.inference(test_loader)
-            val_losses.append(val_loss)
-            val_accs.append(val_acc)
-
-            wandb.log({"train_loss": train_loss, "train_accuracy": train_acc, "val_loss": val_loss, "val_accuracy": val_acc}, step=epoch+1)
-            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc*100:.2f}%, Val Loss: {val_loss:.4f}, Val Acc: {val_acc*100:.2f}%")
-
-            # Save the best model based on validation accuracy
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                print("Model Was Saved ! Current Best Accuracy: {} Current Accuracy: {}".format(best_val_acc, val_acc))
-                torch.save(self.model.module.state_dict(), f'{log_dir}/best_epoch_weights.pth')
-            else: 
-                print("Model Was Not Saved ! Current Best Accuracy: {} Current Accuracy: {}".format(best_val_acc, val_acc))
-            
-            # Step the scheduler
-            self.scheduler.step()
-
-            
-
-        return train_losses, val_losses, train_accs, val_accs
-      
-    def inference(self, test_loader):
+    def test(self, epochs):
         self.model.eval()
-        val_running_loss = 0.0
-        correct_val = 0
-        total_val = 0
-        with torch.no_grad():
-            for images, ages, anatom_sites, sexes, labels in tqdm(test_loader, desc="Test"):
-                outputs = self.model(images.to(self.device), ages.to(self.device), anatom_sites.to(self.device), sexes.to(self.device))
-                loss = self.loss_fn(outputs.squeeze(), labels.float().to(self.device))  # Squeeze output and convert labels to float
-                val_running_loss += loss.item()
-                predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
-                total_val += labels.size(0)
-                correct_val += (predicted == labels.to(self.device)).sum().item()
+        self.test_loss = 0.0
+        self.correct = 0
+        self.total = 0
+        
+        with torch.cuda.amp.autocast(): 
+            test_loader = getloader_bc(self.data_path, batch_size=self.batch_size, mode='train')
+            for _, batch in tqdm(enumerate(test_loader), total=len(test_loader)):
+                image = batch["image"].to(device)
+                output = window_infer(image, model)
 
-        val_loss = val_running_loss / len(test_loader)
-        val_acc = correct_val / total_val
 
-        return val_loss, val_acc
 
 
 # Create DataLoader and define model, optimizer, scheduler, loss_fn, and device
-model = MultiModalClassifier(PARAMS['num_classes'], PARAMS['num_features'], PARAMS['model_architecture'], PARAMS['model_parameters'])
-model = DataParallel(model, device_ids=[i for i in range(PARAMS['num_gpus'])]).to(device)
+model = ImageBileductClassifier(PARAMS['num_classes'])
 loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
-
+window_infer = SlidingWindowInferer(roi_size=[96, 96, 96],
+                                        sw_batch_size=1,
+                                        overlap=0.25)
 # Start time of training loop
 start_training_time = timer()
 
-trainer = infer(model, optimizer, scheduler, loss_fn, device, PARAMS['data_path'], PARAMS['batch_size'], PARAMS['log_dir'])
+trainer = Tester(model, optimizer, scheduler, loss_fn, device, PARAMS['data_path'], PARAMS['batch_size'], PARAMS['log_dir'])
 train_losses, val_losses, train_accs, val_accs = trainer.train(PARAMS['epochs'], PARAMS['log_dir'])
 
 # End time of training loop
