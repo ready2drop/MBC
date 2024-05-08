@@ -40,5 +40,10 @@ def get_model_parameters(dict):
         dict['num_features'] = 1024
         pass
     
+    elif dict['model_architecture'] == 'SwinUNETR':
+        dict['model_parameters'] = {'img_size' : (96, 96, 96), 'in_channels' : 1, 'out_channels' : 1,'feature_size' : 48}
+        dict['num_features'] = 768
+        pass
+    
    
     return dict
