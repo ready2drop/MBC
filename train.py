@@ -24,7 +24,7 @@ print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
 parser.add_argument("--epochs", default=100, type=int)
 parser.add_argument("--learning_rate", default=0.001, type=float)
-parser.add_argument("--batch_size", default=1, type=int)
+parser.add_argument("--batch_size", default=16, type=int)
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--optimizer", default='adam', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
@@ -59,7 +59,7 @@ PARAMS = {
 }
 PARAMS = get_model_parameters(PARAMS)
 
-# wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = PARAMS['model_architecture'], config=PARAMS)
+wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = PARAMS['model_architecture'], config=PARAMS)
 
 
     
@@ -84,7 +84,7 @@ class Trainer:
         for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(train_loader, desc="Training"):
             self.optimizer.zero_grad()
             outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
-            loss = self.loss_fn(outputs.squeeze(), targets.float().to(self.device))  # Squeeze output and convert labels to float
+            loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
             loss.backward()
             self.optimizer.step()
 
@@ -140,7 +140,7 @@ class Trainer:
         with torch.no_grad():
             for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(valid_loader, desc="Validation"):
                 outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
-                loss = self.loss_fn(outputs.squeeze(), targets.float().to(self.device))  # Squeeze output and convert labels to float
+                loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                 val_running_loss += loss.item()
                 predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
                 total_val += targets.size(0)
@@ -159,6 +159,7 @@ if args.data_shape == '3d':
 else:
     model = MultiModalbileductClassifier_2d(PARAMS['num_classes'], PARAMS['num_features'], PARAMS['model_architecture'], PARAMS['model_parameters'])
 model = DataParallel(model, device_ids=[i for i in range(PARAMS['num_gpus'])]).to(device)
+
 loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 
 # Start time of training loop

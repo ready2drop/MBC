@@ -93,7 +93,7 @@ class CustomImageDataset(Dataset):
         return image, label  # Return image and label
 
 # Define the path to your CSV file
-xlsx_file = "../datasets/Part2_nifti/bileduct_data_20240429a.xlsx"
+xlsx_file = "../datasets/Part1_nifti/bileduct_data_20240429a.xlsx"
 df = pd.read_excel(xlsx_file, engine='openpyxl')
 #Inclusion
 df_inclusion = df[df['Inclusion']==1.0]
@@ -109,7 +109,7 @@ columns = ['patient_id','Duct_diliatation', 'Visible_stone_CT', 'Pancreatitis','
 data = df_inclusion[columns]
 data['patient_id'] = data['patient_id'].astype(str)
 
-image_list = sorted(glob("/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/test/*.nii.gz"))
+image_list = sorted(glob("/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part1_nifti/test/*.nii.gz"))
 
 # Initialize lists to store data
 image_paths, Duct_diliatations, Visible_stone_CTs, Pancreatitis_values, targets= [],[],[],[],[]

@@ -51,7 +51,8 @@ class MultiModalbileductClassifier_3d(nn.Module):
         # Load pre-trained backbone model
         model = getattr(nets, model_architecture)(**model_parameters)
         weight = torch.load(pretrain_path)
-        self.model = model.load_from(weights=weight)
+        model.load_from(weights=weight)
+        self.model = model
         self.feature_dim = 4  # Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis
         # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
