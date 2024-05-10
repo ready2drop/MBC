@@ -23,6 +23,7 @@ print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
 parser.add_argument("--epochs", default=100, type=int)
+parser.add_argument("--val_every", default=10, type=int)
 parser.add_argument("--learning_rate", default=0.001, type=float)
 parser.add_argument("--batch_size", default=16, type=int)
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
@@ -44,6 +45,7 @@ args.log_dir = logdir(args.log_dir)
 
 PARAMS = {
     'epochs': args.epochs,
+    'val_every': args.val_every,
     'learning_rate': args.learning_rate,
     'batch_size': args.batch_size,
     'num_gpus' : args.num_gpus, 
@@ -98,7 +100,7 @@ class Trainer:
 
         return train_loss, train_acc
 
-    def train(self, epochs, log_dir):
+    def train(self, epochs, val_every, log_dir):
         train_loader, valid_loader = getloader_bc(self.data_path, self.excel_file, batch_size=self.batch_size, mode='train')
         train_losses, val_losses, train_accs, val_accs = [], [], [], []
         best_val_acc = 0.0
@@ -109,7 +111,7 @@ class Trainer:
             train_accs.append(train_acc)
 
             # Validation
-            if (epoch + 1) % 10 == 0:
+            if (epoch + 1) % val_every == 0:
                 val_loss, val_acc = self.validate(valid_loader)
                 val_losses.append(val_loss)
                 val_accs.append(val_acc)
@@ -166,7 +168,7 @@ loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 start_training_time = timer()
 
 trainer = Trainer(model, optimizer, scheduler, loss_fn, device, PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['log_dir'])
-train_losses, val_losses, train_accs, val_accs = trainer.train(PARAMS['epochs'], PARAMS['log_dir'])
+train_losses, val_losses, train_accs, val_accs = trainer.train(PARAMS['epochs'], PARAMS['val_every'], PARAMS['log_dir'])
 
 # End time of training loop
 end_training_time = timer()

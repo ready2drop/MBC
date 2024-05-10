@@ -41,7 +41,7 @@ class CustomDataset(Dataset):
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
-            transforms.CropForeground(),
+            # transforms.CropForeground(),
             transforms.ToTensor(),
         ])
         
