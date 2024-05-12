@@ -38,9 +38,10 @@ parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-
 parser.add_argument("--excel_file", default='bileduct_data_20240508b.xlsx', type=str, help="excel data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape")
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
+parser.add_argument("--mode", default='train', type=str, help="mode")
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir)
+args.log_dir = logdir(args.log_dir, args.mode)
 
 
 PARAMS = {
@@ -58,6 +59,7 @@ PARAMS = {
     'pretrain_path' : args.pretrain_path,
     'excel_file' : args.excel_file,
     'log_dir' : args.log_dir,
+    'mode' : args.mode,
 }
 PARAMS = get_model_parameters(PARAMS)
 
@@ -67,7 +69,7 @@ wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name =
     
 # Training and Valaidation
 class Trainer:
-    def __init__(self, model, optimizer, scheduler, loss_fn, device, data_path, excel_file, batch_size, log_dir):
+    def __init__(self, model, optimizer, scheduler, loss_fn, device, data_path, excel_file, batch_size, log_dir, mode):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -77,6 +79,7 @@ class Trainer:
         self.excel_file = excel_file
         self.batch_size = batch_size
         self.log_dir = log_dir
+        self.mode = mode
 
     def train_one_epoch(self, train_loader):
         self.model.train()
@@ -101,7 +104,7 @@ class Trainer:
         return train_loss, train_acc
 
     def train(self, epochs, val_every, log_dir):
-        train_loader, valid_loader = getloader_bc(self.data_path, self.excel_file, batch_size=self.batch_size, mode='train')
+        train_loader, valid_loader = getloader_bc(self.data_path, self.excel_file, batch_size=self.batch_size, mode= self.mode)
         train_losses, val_losses, train_accs, val_accs = [], [], [], []
         best_val_acc = 0.0
 
@@ -167,7 +170,7 @@ loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 # Start time of training loop
 start_training_time = timer()
 
-trainer = Trainer(model, optimizer, scheduler, loss_fn, device, PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['log_dir'])
+trainer = Trainer(model, optimizer, scheduler, loss_fn, device, PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['log_dir'], PARAMS['mode'])
 train_losses, val_losses, train_accs, val_accs = trainer.train(PARAMS['epochs'], PARAMS['val_every'], PARAMS['log_dir'])
 
 # End time of training loop
