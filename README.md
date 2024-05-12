@@ -26,6 +26,7 @@ This classifier is designed to classify bile duct stone images using a multimoda
 - tqdm
 
 You can install the required packages using the following command:
+
 '''
 pip install -r requirements.txt
 '''
@@ -34,11 +35,14 @@ pip install -r requirements.txt
 
 ### Training
 You can run the training script using the following command:
+
 '''
 python train.py --epochs 100 --val_every 10 --learning_rate 0.001 --batch_size 16 --num_gpus 8 --optimizer adam --loss_function BCE --scheduler StepLR --momentum 0.0 --model_architecture efficientnet_b0 --data_path /path/to/dataset/ --pretrain_path /path/to/pretrained_weights.pt --excel_file bileduct_data.xlsx --data_shape 3d --log_dir logs/ --mode train
 '''
+
 ### Testing
 To evaluate the trained model, use the following command:
+
 '''
 python test.py --epochs 100 --learning_rate 0.001 --batch_size 1 --num_gpus 8 --num_classes 1 --optimizer adam --loss_function BCE --scheduler StepLR --momentum 0.0 --model_architecture efficientnet_b0 --data_path /path/to/dataset/ --pretrain_path /path/to/pretrained_weights.pt --ckpt_path /path/to/best_epoch_weights.pth --excel_file bileduct_data.xlsx --data_shape 3d --log_dir logs/ --mode test
 '''
