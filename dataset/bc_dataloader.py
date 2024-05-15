@@ -18,12 +18,16 @@ class CustomDataset(Dataset):
         self.train_transform = transforms.Compose([
             transforms.LoadImage(image_only=True),
             transforms.AddChannel(),
-            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Orientation(axcodes="RAS"),
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
             transforms.CropForeground(),
+            transforms.Spacing(
+                pixdim=(1.0, 1.0, 1.0),
+                mode=("bilinear"),
+            ),
+            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.RandFlip(prob=0.1, spatial_axis=0),
             transforms.RandFlip(prob=0.1, spatial_axis=1),
             transforms.RandFlip(prob=0.1, spatial_axis=2),
@@ -36,12 +40,16 @@ class CustomDataset(Dataset):
         self.val_transform = transforms.Compose([   
             transforms.LoadImage(image_only=True),
             transforms.AddChannel(),
-            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Orientation(axcodes="RAS"),
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
-            # transforms.CropForeground(),
+            transforms.CropForeground(),
+            transforms.Spacing(
+                pixdim=(1.0, 1.0, 1.0),
+                mode=("bilinear"),
+            ),
+            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.ToTensor(),
         ])
         
@@ -49,16 +57,15 @@ class CustomDataset(Dataset):
         self.test_transform = transforms.Compose([   
             transforms.LoadImage(image_only=True),
             transforms.AddChannel(),
-            # transforms.Spacingd(
-            #     keys=["image"],
-            #     pixdim=(1.5, 1.5, 2.0),
-            #     mode=("bilinear"),
-            # ),
-            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Orientation(axcodes="RAS"),
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),   
+            transforms.Spacing(
+                pixdim=(1.0, 1.0, 1.0),
+                mode=("bilinear"),
+            ),
+            transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.ToTensor(),
         ])
         
