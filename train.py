@@ -122,13 +122,22 @@ class Trainer:
         correct_val = 0
         total_val = 0
         with torch.no_grad():
-            for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(valid_loader, desc="Validation"):
-                outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
-                loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
-                val_running_loss += loss.item()
-                predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
-                total_val += targets.size(0)
-                correct_val += (predicted == targets.to(self.device)).sum().item()
+            if self.modality == 'mm':
+                for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(valid_loader, desc="Validation"):
+                    outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
+                    loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
+                    val_running_loss += loss.item()
+                    predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
+                    total_val += targets.size(0)
+                    correct_val += (predicted == targets.to(self.device)).sum().item()
+            elif self.modality == 'image':
+                for images, targets in tqdm(valid_loader, desc="Validation"):
+                    outputs = self.model(images.to(self.device))
+                    loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
+                    val_running_loss += loss.item()
+                    predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
+                    total_val += targets.size(0)
+                    correct_val += (predicted == targets.to(self.device)).sum().item()  
 
         val_loss = val_running_loss / len(valid_loader)
         val_acc = correct_val / total_val
@@ -169,7 +178,7 @@ PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
 
 if PARAMS['use_wandb'] == True:
-    wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = PARAMS['model_architecture'], config=PARAMS)
+    wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['data_shape']}", config=PARAMS)
 
 # Modality, Model, Data Shape
 if PARAMS['modality'] == 'mm':
