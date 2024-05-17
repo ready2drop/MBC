@@ -9,6 +9,7 @@ import os
 def load_data(data_dir : str, 
               excel_file : str,
                 mode : str = "train",
+                modality : str = 'mm',
                 ):
     
     
@@ -55,17 +56,27 @@ def load_data(data_dir : str,
             targets.append(target)
 
     # Create a dictionary from lists
-    data_dict = {
+    if modality == 'mm':
+        data_dict = {
         'image_path': image_paths,
         'Duct_diliatations_8mm': Duct_diliatations_8mms,
         'Duct_diliatation_10mm': Duct_diliatations_10mms,
         'Visible_stone_CT': Visible_stone_CTs,
         'Pancreatitis': Pancreatitis_values,
         'target': targets
-    }
+        }
+    elif modality == 'image':
+        data_dict = {
+        'image_path': image_paths,
+        'target': targets
+        }
+    else:
+        raise AssertionError("Feature enginnering error")
 
     # Create a DataFrame from the dictionary
     train_df = pd.DataFrame(data_dict)
+    
+                
     
     
     print("--------------Class balance--------------")

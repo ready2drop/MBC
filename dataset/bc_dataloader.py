@@ -10,8 +10,9 @@ from sklearn.model_selection import train_test_split
 from .bc_feature_engineering import load_data
 
 class CustomDataset(Dataset):
-    def __init__(self, dataframe, mode='train'):
+    def __init__(self, dataframe, modality, mode):
         self.dataframe = dataframe
+        self.modality = modality
         self.mode = mode
         
         # Define transforms for the data
@@ -73,50 +74,64 @@ class CustomDataset(Dataset):
         return len(self.dataframe)
 
     def __getitem__(self, idx):
-        img_name = self.dataframe.iloc[idx, 0] # 3 is the index of image_path in train_data
-        
         # Apply transformations based on the mode
+        img_name = self.dataframe.iloc[idx, 0] # 0 is the index of image_path in train_data
+
         if self.mode == 'train':
             image = self.train_transform(img_name)
-        if self.mode == 'val':
+        elif self.mode == 'val':
             image = self.val_transform(img_name)            
         else:
             image = self.test_transform(img_name)
+                
+        if self.modality == 'mm':
+            Duct_8mm = self.dataframe.iloc[idx, 1] # 1 = index of Duct_diliatations_8mm in train_data
+            Duct_10mm = self.dataframe.iloc[idx, 2] # 2 = index of Duct_diliatation_10mm in train_data
+            vis_ct = self.dataframe.iloc[idx, 3]  # 3 = index of Visible_stone_CT in train_data
+            pancreas = self.dataframe.iloc[idx, 4]  # 4 = index of Pancreatitis in train_data
+            label = self.dataframe.iloc[idx, 5]  # 4 = index of target in train_data
             
-        Duct_8mm = self.dataframe.iloc[idx, 1] # 1 = index of Duct_diliatations_8mm in train_data
-        Duct_10mm = self.dataframe.iloc[idx, 2] # 2 = index of Duct_diliatation_10mm in train_data
-        vis_ct = self.dataframe.iloc[idx, 3]  # 3 = index of Visible_stone_CT in train_data
-        pancreas = self.dataframe.iloc[idx, 4]  # 4 = index of Pancreatitis in train_data
-        label = self.dataframe.iloc[idx, 5]  # 4 = index of target in train_data
-
+            # Convert to tensor and return all inputs
+            Duct_8mm = torch.tensor(Duct_8mm, dtype=torch.float32)
+            Duct_10mm = torch.tensor(Duct_10mm, dtype=torch.float32)
+            vis_ct = torch.tensor(vis_ct, dtype=torch.float32)
+            pancreas = torch.tensor(pancreas, dtype=torch.float32)
+            label = torch.tensor(label, dtype=torch.long)
+            
+            return image, Duct_8mm, Duct_10mm, vis_ct, pancreas, label
+            
+        elif self.modality == 'image':
+            label = self.dataframe.iloc[idx, 1]  # 4 = index of target in train_data
+            label = torch.tensor(label, dtype=torch.long)
+            
+            return image, label
+            
+        else:
+            raise AssertionError("Data loader error")
         
                      
-        # Convert to tensor and return all inputs
-        Duct_8mm = torch.tensor(Duct_8mm, dtype=torch.float32)
-        Duct_10mm = torch.tensor(Duct_10mm, dtype=torch.float32)
-        vis_ct = torch.tensor(vis_ct, dtype=torch.float32)
-        pancreas = torch.tensor(pancreas, dtype=torch.float32)
-        label = torch.tensor(label, dtype=torch.long)
+        
                
-        return image, Duct_8mm, Duct_10mm, vis_ct, pancreas, label
+        
     
 def getloader_bc(
     data_dir : 'str',
     excel_file : 'str',
     batch_size: int = 1,
     mode : str = "train",
+    modality : str = "mm",
     ):
     
     if mode == 'train':
-        train_data, valid_data = load_data(data_dir, excel_file, mode='train')
-        train_dataset = CustomDataset(train_data, mode='train')
-        valid_dataset = CustomDataset(valid_data, mode='val')
+        train_data, valid_data = load_data(data_dir, excel_file, mode, modality)
+        train_dataset = CustomDataset(train_data, modality, mode='train')
+        valid_dataset = CustomDataset(valid_data, modality, mode='val')
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
         return train_loader, valid_loader
     else:
-        test_data = load_data(data_dir, excel_file, mode='test')
-        test_dataset = CustomDataset(test_data, mode='test')
+        test_data = load_data(data_dir, excel_file, modality)
+        test_dataset = CustomDataset(test_data, modality, mode)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return test_loader
 
