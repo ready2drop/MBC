@@ -19,7 +19,7 @@ This classifier is designed to classify bile duct stone images using a multimoda
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.9+
 - PyTorch
 - torchvision
 - wandb
