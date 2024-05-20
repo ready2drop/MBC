@@ -105,7 +105,9 @@ def load_data(data_dir : str,
         print("Train set shape:", train_data.shape)
         print("Validation set shape:", valid_data.shape)
         return train_data, valid_data
-    else:
+    elif mode == 'test':
         print("Test set shape:", test_data.shape)
         return test_data
+    else:
+        raise ValueError("Choose mode!")
     

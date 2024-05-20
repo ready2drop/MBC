@@ -3,7 +3,8 @@ import os
 from monai import transforms
 from monai.data import DataLoader
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
+from monai.data import DataLoader, MetaTensor
 from sklearn.model_selection import train_test_split
 # import torchvision.transforms as transforms
 # from .feature_engineering import load_data
@@ -83,7 +84,9 @@ class CustomDataset(Dataset):
             image = self.val_transform(img_name)            
         else:
             image = self.test_transform(img_name)
-                
+        
+        meta_dict = image.meta
+                        
         if self.modality == 'mm':
             Duct_8mm = self.dataframe.iloc[idx, 1] # 1 = index of Duct_diliatations_8mm in train_data
             Duct_10mm = self.dataframe.iloc[idx, 2] # 2 = index of Duct_diliatation_10mm in train_data
@@ -98,13 +101,13 @@ class CustomDataset(Dataset):
             pancreas = torch.tensor(pancreas, dtype=torch.float32)
             label = torch.tensor(label, dtype=torch.long)
             
-            return image, Duct_8mm, Duct_10mm, vis_ct, pancreas, label
+            return image, Duct_8mm, Duct_10mm, vis_ct, pancreas, label, meta_dict
             
         elif self.modality == 'image':
             label = self.dataframe.iloc[idx, 1]  # 4 = index of target in train_data
             label = torch.tensor(label, dtype=torch.long)
             
-            return image, label
+            return image, label, meta_dict
             
         else:
             raise AssertionError("Data loader error")
@@ -129,11 +132,13 @@ def getloader_bc(
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
         return train_loader, valid_loader
-    else:
-        test_data = load_data(data_dir, excel_file, modality)
-        test_dataset = CustomDataset(test_data, modality, mode)
+    elif mode == 'test':
+        test_data = load_data(data_dir, excel_file, mode, modality)
+        test_dataset = CustomDataset(test_data, modality, mode='test')
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return test_loader
+    else:
+        raise ValueError("Choose mode!")
 
 
 
