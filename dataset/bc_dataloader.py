@@ -24,9 +24,10 @@ class CustomDataset(Dataset):
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
-            transforms.CropForeground(),
+            # transforms.CropForeground(),
+            transforms.SpatialCrop(roi_center=(300, 300, 0), roi_size=(256,256,1000)),
             transforms.Spacing(
-                pixdim=(1.0, 1.0, 1.0),
+                pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear"),
             ),
             transforms.Resize(spatial_size=(96, 96, 96)),
@@ -46,11 +47,12 @@ class CustomDataset(Dataset):
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
-            transforms.CropForeground(),
+            transforms.SpatialCrop(roi_center=(300, 300, 0), roi_size=(256,256,1000)),
             transforms.Spacing(
-                pixdim=(1.0, 1.0, 1.0),
+                pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear"),
             ),
+            # transforms.CropForeground(),
             transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.ToTensor(),
         ])
@@ -67,6 +69,8 @@ class CustomDataset(Dataset):
                 pixdim=(1.0, 1.0, 1.0),
                 mode=("bilinear"),
             ),
+            transforms.CropForeground(),
+            transforms.SpatialCrop(roi_center=(250, 300, 40), roi_size=(224,224,1000)),
             transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.ToTensor(),
         ])

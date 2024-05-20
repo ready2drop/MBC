@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.nn.parallel import DataParallel
 
-from dataset.dataloader import getloader
 from dataset.bc_dataloader import getloader_bc
 from model.mbc import MultiModalbileductClassifier_2d, MultiModalbileductClassifier_3d
 from model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
@@ -33,7 +32,6 @@ class Trainer:
         self.log_dir = dict['log_dir']
         self.epochs = dict['epochs']
         self.val_every = dict['val_every']
-        self.log_dir = dict['log_dir']
         self.mode = dict['mode']
         self.modality = dict['modality']
 
@@ -63,7 +61,7 @@ class Trainer:
                 train_acc = correct_train / total_train
                 
             if self.modality == 'image':
-                for images, targets in train_loader:
+                for images, targets, _ in train_loader:
                     self.optimizer.zero_grad()
                     outputs = self.model(images.to(self.device))
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
@@ -131,7 +129,7 @@ class Trainer:
                     total_val += targets.size(0)
                     correct_val += (predicted == targets.to(self.device)).sum().item()
             elif self.modality == 'image':
-                for images, targets in tqdm(valid_loader, desc="Validation"):
+                for images, targets, _ in tqdm(valid_loader, desc="Validation"):
                     outputs = self.model(images.to(self.device))
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                     val_running_loss += loss.item()
