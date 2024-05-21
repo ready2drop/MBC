@@ -14,71 +14,58 @@ def load_data(data_dir : str,
     
     
     print("--------------Load RawData--------------")
-    df = pd.read_excel(os.path.join(data_dir, excel_file), engine='openpyxl')
-
+    if excel_file.split('.')[-1]=='xlsx': 
+        df = pd.read_excel(os.path.join(data_dir, excel_file), engine='openpyxl')
+        df = df[df['Inclusion']==1.0]
+    else: 
+        df = pd.read_csv(os.path.join(data_dir, excel_file))
     #Inclusion
     print("--------------Inclusion--------------")
-    df = df[df['Inclusion']==1.0]
     print('Total : ', len(df))
 
     print("--------------fillNA--------------")
     # data = data.dropna()
     df.fillna(0.0,inplace=True)
-    print(df['Real_stone'].value_counts())
+    print(df['REAL_STONE'].value_counts())
 
     #Column rename
-    df.rename(columns={'환자번호': 'patient_id','Real_stone':'target' }, inplace=True)
+    df.rename(columns={'환자번호': 'patient_id', '검사결과': 'blood_test', 'REAL_STONE':'target' }, inplace=True)
     #column select
-    columns = ['patient_id','Duct_diliatation_8mm', 'Duct_diliatation_10mm', 'Visible_stone_CT', 'Pancreatitis','target']
+    columns = ['patient_id','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'SBP', 'DBP',
+        'HR', 'RR', 'BT', 'AGE', 'GENDER','blood_test', 'PANCREATITIS','target']
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
 
     image_list = sorted(glob(os.path.join(data_dir,"*.nii.gz")))
 
-    # Initialize lists to store data
-    image_paths, Duct_diliatations_8mms, Duct_diliatations_10mms, Visible_stone_CTs, Pancreatitis_values, targets= [],[],[],[],[],[]
+    def get_patient_data(image_number):
+        row = df[df['patient_id'].astype(str).str.startswith(image_number)]
+        return row.iloc[0, 1:].tolist() if not row.empty else None
 
-    for i in image_list:
-        image_number = i.split('/')[-1].split('_')[0]
-        if len(data[data['patient_id']==image_number]) > 0:
-            Duct_diliatations_8mm = data.loc[data['patient_id'].str.startswith(image_number), 'Duct_diliatation_8mm'].values[0]
-            Duct_diliatations_10mm = data.loc[data['patient_id'].str.startswith(image_number), 'Duct_diliatation_10mm'].values[0]
-            Visible_stone_CT = data.loc[data['patient_id'].str.startswith(image_number), 'Visible_stone_CT'].values[0]
-            Pancreatitis = data.loc[data['patient_id'].str.startswith(image_number), 'Pancreatitis'].values[0]
-            target = data.loc[data['patient_id'].str.startswith(image_number), 'target'].values[0]
+    data_dict = {key: [] for key in ['image_path', 'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'GENDER', 'blood_test', 'PANCREATITIS', 'target']}
 
-            # Append data to lists
-            image_paths.append(i)
-            Duct_diliatations_8mms.append(Duct_diliatations_8mm)
-            Duct_diliatations_10mms.append(Duct_diliatations_10mm)
-            Visible_stone_CTs.append(Visible_stone_CT)
-            Pancreatitis_values.append(Pancreatitis)
-            targets.append(target)
+    for image_path in image_list:
+        image_number = os.path.basename(image_path).split('_')[0]
+        patient_data = get_patient_data(image_number)
+        if patient_data:
+            data_dict['image_path'].append(image_path)
+            keys_list = list(data_dict.keys())[1:]
+            for key, value in zip(keys_list, patient_data):
+                if key == 'image_path':
+                    continue
+                data_dict[key].append(value)
 
-    # Create a dictionary from lists
-    if modality == 'mm':
-        data_dict = {
-        'image_path': image_paths,
-        'Duct_diliatations_8mm': Duct_diliatations_8mms,
-        'Duct_diliatation_10mm': Duct_diliatations_10mms,
-        'Visible_stone_CT': Visible_stone_CTs,
-        'Pancreatitis': Pancreatitis_values,
-        'target': targets
-        }
-    elif modality == 'image':
-        data_dict = {
-        'image_path': image_paths,
-        'target': targets
-        }
-    else:
-        raise AssertionError("Feature enginnering error")
+    if modality == 'image':
+            data_dict = {k: data_dict[k] for k in ['image_path', 'target']}
+    elif modality != 'mm':
+        raise AssertionError("Feature engineering error")
 
-    # Create a DataFrame from the dictionary
+    #Create a DataFrame from the dictionary
     train_df = pd.DataFrame(data_dict)
-    
+
                 
-    
-    
+
+
     print("--------------Class balance--------------")
     majority_class = train_df[train_df['target'] == 1.0]
     minority_class = train_df[train_df['target'] == 0.0]
@@ -92,9 +79,9 @@ def load_data(data_dir : str,
     # Concatenate minority class and undersampled majority class
     data = pd.concat([undersampled_majority_class, minority_class])
     print(data['target'].value_counts())
-    
-    
-    
+
+
+
     # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
     train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
@@ -105,9 +92,11 @@ def load_data(data_dir : str,
         print("Train set shape:", train_data.shape)
         print("Validation set shape:", valid_data.shape)
         return train_data, valid_data
+
     elif mode == 'test':
         print("Test set shape:", test_data.shape)
         return test_data
+    
     else:
         raise ValueError("Choose mode!")
     

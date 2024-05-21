@@ -44,9 +44,9 @@ class Trainer:
         
         with tqdm(total=len(train_loader), desc="Training") as pbar: 
             if self.modality == 'mm':
-                for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in train_loader:
+                for images, features, targets, _ in train_loader:
                     self.optimizer.zero_grad()
-                    outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
+                    outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                     loss.backward()
                     self.optimizer.step()
@@ -61,7 +61,7 @@ class Trainer:
                 train_loss = running_loss / len(train_loader)
                 train_acc = correct_train / total_train
                 
-            if self.modality == 'image':
+            elif self.modality == 'image':
                 for images, targets, _ in train_loader:
                     self.optimizer.zero_grad()
                     outputs = self.model(images.to(self.device))
@@ -124,8 +124,8 @@ class Trainer:
         total_val = 0
         with torch.no_grad():
             if self.modality == 'mm':
-                for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(valid_loader, desc="Validation"):
-                    outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
+                for images, features, targets, _ in tqdm(valid_loader, desc="Validation"):
+                    outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                     val_running_loss += loss.item()
                     predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
@@ -166,7 +166,7 @@ parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum fo
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
 parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--excel_file", default='bileduct_data_20240508b.xlsx', type=str, help="tabular data")
+parser.add_argument("--excel_file", default='combined.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'

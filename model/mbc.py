@@ -64,10 +64,10 @@ class MultiModalbileductClassifier_3d(nn.Module):
         weight = torch.load(self.pretrain_path)
         model.load_from(weights=weight)
         self.model = model
-        self.feature_dim = 4  # Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis
-        # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
+        self.feature_dim = 11  # number of features
+
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Sequential(nn.Linear(self.num_features, 256),
+        self.fc = nn.Sequential(nn.Linear(self.num_features + self.feature_dim, 256),
                                 nn.BatchNorm1d(256),
                                 nn.ReLU(),
                                 nn.Dropout(p=0.5),
@@ -76,7 +76,7 @@ class MultiModalbileductClassifier_3d(nn.Module):
         
 
         
-    def forward(self, image, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis):
+    def forward(self, image, features):
         # SwinUNetR의 forward 메서드 호출
         hidden_states_out = self.model.swinViT(image)     
         x = self.model.encoder1(image) # torch.Size([1, 48, 96, 96, 96])
@@ -87,15 +87,9 @@ class MultiModalbileductClassifier_3d(nn.Module):
         # SwinUNetR의 출력을 classifier에 통과시켜서 분류 작업 수행
         x = self.global_avg_pool(x) # torch.Size([1, 768, 1, 1, 1])
         x = x.view(x.size(0), -1) # torch.Size([1, 1024])
-        
-        # Reshape age, anatom_site, and sex tensors
-        Duct_diliatations_8mm = Duct_diliatations_8mm.view(-1, 1)  # Reshape to [batch_size, 1]
-        Duct_diliatation_10mm = Duct_diliatation_10mm.view(-1, 1)  # Reshape to [batch_size, 1]
-        Visible_stone_CT = Visible_stone_CT.view(-1, 1)  # Reshape to [batch_size, 1]
-        Pancreatitis = Pancreatitis.view(-1, 1)  # Reshape to [batch_size, 1]
 
         # Concatenate image features with additional features
-        additional_features = torch.cat((Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis), dim=1)
+        additional_features = torch.cat([feature.view(-1, 1) for feature in features], dim=1)
         combined_features = torch.cat((x, additional_features), dim=1)
         
         # Fully connected layers for classification

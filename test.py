@@ -31,6 +31,7 @@ class Tester:
         self.log_dir = dict['log_dir']
         self.mode = dict['mode']
         self.modality = dict['modality']
+        self.use_wandb = dict['use_wandb']
         
     def load_state_dict(self, weight_path, strict=False):
         sd = torch.load(weight_path, map_location="cpu")
@@ -47,7 +48,7 @@ class Tester:
         targets_all, predicted_all = [], []
 
         test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
-        
+
         with torch.no_grad():
             with tqdm(total=len(test_loader), desc="Testing") as pbar: 
                 if self.modality == 'mm':
@@ -60,12 +61,12 @@ class Tester:
                         correct_test += (predicted == targets.to(self.device)).sum().item()
                         targets_all.append(targets.item())
                         predicted_all.append(predicted.item())
-                        wandb.log({"test_loss": loss.item(), "test_accuracy": (predicted == targets.to(self.device)).sum().item() / targets.size(0)})
-
-                    test_loss = test_running_loss / len(test_loader)
-                    test_acc = correct_test / total_test
-                    
-                if self.modality == 'image':
+                        
+                        if self.use_wandb:
+                            wandb.log({"test_loss": loss.item(), "test_accuracy": (predicted == targets.to(self.device)).sum().item() / targets.size(0)})
+                        pbar.update(1)
+                        
+                elif self.modality == 'image':
                     for images, targets, _ in test_loader:
                         outputs = self.model(images.to(self.device))
                         loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
@@ -75,16 +76,18 @@ class Tester:
                         correct_test += (predicted == targets.to(self.device)).sum().item()
                         targets_all.append(targets.item())
                         predicted_all.append(predicted.item())
-                        wandb.log({"test_loss": loss.item(), "test_accuracy": (predicted == targets.to(self.device)).sum().item() / targets.size(0)})
-
-                    test_loss = test_running_loss / len(test_loader)
-                    test_acc = correct_test / total_test
+                        if self.use_wandb:
+                            wandb.log({"test_loss": loss.item(), "test_accuracy": (predicted == targets.to(self.device)).sum().item() / targets.size(0)})
+                        pbar.update(1)
+                        
+            test_loss = test_running_loss / len(test_loader)
+            test_acc = correct_test / total_test
                     
         save_confusion_matrix_roc_curve(targets_all, predicted_all, self.log_dir)
         print("Test : Accuracy: {} Loss: {}".format(test_acc, test_loss))
         
         
-        return test_loss, test_acc, 
+        return test_loss, test_acc
 
 
 
@@ -97,7 +100,7 @@ parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfi
 parser.add_argument("--epochs", default=100, type=int, help="Epoch")
 parser.add_argument("--val_every", default=10, type=int, help="Learning rate")
 parser.add_argument("--learning_rate", default=0.001, type=float, help="Learning rate")
-parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
+parser.add_argument("--batch_size", default=1, type=int, help="Batch size")
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
@@ -108,11 +111,12 @@ parser.add_argument("--scheduler", default='StepLR', type=str, help="Type of Lea
 parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
-parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--excel_file", default='bileduct_data_20240508b.xlsx', type=str, help="tabular data")
+parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-05-21-15-53-train/best_epoch_weights.pth', type=str, help="finetuned weight path")
+parser.add_argument("--excel_file", default='combined.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
-parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'
+parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 
 args = parser.parse_args()
@@ -122,7 +126,7 @@ PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
 
 if PARAMS['use_wandb'] == True:
-    wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['data_shape']}", config=PARAMS)
+    wandb.init(project="Multimodal-Bileductstone-Classifier-Test", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['data_shape']}", config=PARAMS)
 
 # Modality, Model, Data Shape
 if PARAMS['modality'] == 'mm':

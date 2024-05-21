@@ -93,23 +93,14 @@ class CustomDataset(Dataset):
         meta_dict = image.meta
                         
         if self.modality == 'mm':
-            Duct_8mm = self.dataframe.iloc[idx, 1] # 1 = index of Duct_diliatations_8mm in train_data
-            Duct_10mm = self.dataframe.iloc[idx, 2] # 2 = index of Duct_diliatation_10mm in train_data
-            vis_ct = self.dataframe.iloc[idx, 3]  # 3 = index of Visible_stone_CT in train_data
-            pancreas = self.dataframe.iloc[idx, 4]  # 4 = index of Pancreatitis in train_data
-            label = self.dataframe.iloc[idx, 5]  # 4 = index of target in train_data
+            data = self.dataframe.iloc[idx, 1:-1].values.astype(float)
+            features = [torch.tensor(data[i], dtype=torch.float32) for i in range(len(data))]
+            label = torch.tensor(self.dataframe.iloc[idx, -1], dtype=torch.long)
             
-            # Convert to tensor and return all inputs
-            Duct_8mm = torch.tensor(Duct_8mm, dtype=torch.float32)
-            Duct_10mm = torch.tensor(Duct_10mm, dtype=torch.float32)
-            vis_ct = torch.tensor(vis_ct, dtype=torch.float32)
-            pancreas = torch.tensor(pancreas, dtype=torch.float32)
-            label = torch.tensor(label, dtype=torch.long)
-            
-            return image, Duct_8mm, Duct_10mm, vis_ct, pancreas, label, meta_dict
+            return image, features, label, meta_dict
             
         elif self.modality == 'image':
-            label = self.dataframe.iloc[idx, 1]  # 4 = index of target in train_data
+            label = self.dataframe.iloc[idx, 1]
             label = torch.tensor(label, dtype=torch.long)
             
             return image, label, meta_dict
