@@ -34,6 +34,7 @@ class Trainer:
         self.val_every = dict['val_every']
         self.mode = dict['mode']
         self.modality = dict['modality']
+        self.use_wandb = dict['use_wandb']
 
     def train_one_epoch(self, train_loader):
         self.model.train()
@@ -96,7 +97,9 @@ class Trainer:
                 val_losses.append(val_loss)
                 val_accs.append(val_acc)
 
-                wandb.log({"train_loss": train_loss, "train_accuracy": train_acc, "val_loss": val_loss, "val_accuracy": val_acc}, step=epoch+1)
+                if self.use_wandb:
+                    wandb.log({"train_loss": train_loss, "train_accuracy": train_acc, "val_loss": val_loss, "val_accuracy": val_acc}, step=epoch+1)
+                    
                 print(f"Epoch {epoch+1}/{self.epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc*100:.2f}%, Val Loss: {val_loss:.4f}, Val Acc: {val_acc*100:.2f}%")
 
                 # Save the best model based on validation accuracy

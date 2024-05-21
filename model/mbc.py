@@ -57,7 +57,6 @@ class MultiModalbileductClassifier_3d(nn.Module):
         self.model_architecture = dict['model_architecture']
         self.model_parameters = dict['model_parameters']
         self.pretrain_path = dict['pretrain_path']
-        self.num_classes = dict['num_classes']
         super(MultiModalbileductClassifier_3d, self).__init__()
         
         # Load pre-trained backbone model
@@ -68,10 +67,12 @@ class MultiModalbileductClassifier_3d(nn.Module):
         self.feature_dim = 4  # Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis
         # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Sequential(nn.Linear(self.num_features + self.feature_dim, 256),
+        self.fc = nn.Sequential(nn.Linear(self.num_features, 256),
+                                nn.BatchNorm1d(256),
                                 nn.ReLU(),
                                 nn.Dropout(p=0.5),
-                                nn.Linear(256, self.num_classes))
+                                nn.Linear(256, self.num_classes),
+                                )
         
 
         
@@ -82,7 +83,7 @@ class MultiModalbileductClassifier_3d(nn.Module):
         x = self.model.encoder2(hidden_states_out[0]) # torch.Size([1, 48, 48, 48, 48])
         x = self.model.encoder3(hidden_states_out[1]) # torch.Size([1, 96, 24, 24, 24])
         x = self.model.encoder4(hidden_states_out[2]) # torch.Size([1, 192, 12, 12, 12])
-        x = self.model.encoder10(hidden_states_out[4]) # torch.Size([1, 768, 3, 3, 3])
+        # x = self.model.encoder10(hidden_states_out[4]) # torch.Size([1, 768, 3, 3, 3])
         # SwinUNetR의 출력을 classifier에 통과시켜서 분류 작업 수행
         x = self.global_avg_pool(x) # torch.Size([1, 768, 1, 1, 1])
         x = x.view(x.size(0), -1) # torch.Size([1, 1024])

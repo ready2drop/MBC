@@ -15,7 +15,7 @@ def get_optimizer_loss_scheduler(PARAMS, model):
 
     # Update the optimizer based on the PARAMS
     if PARAMS['optimizer'] == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=PARAMS['learning_rate'])
+        optimizer = optim.Adam(model.parameters(), lr=PARAMS['learning_rate'], weight_decay=0.01)
     elif PARAMS['optimizer'] == 'rmsprop':
         optimizer = optim.RMSprop(model.parameters(), lr=PARAMS['learning_rate'])
     elif PARAMS['optimizer'] == 'sgd':

@@ -11,5 +11,4 @@
 
 
 ## Image classification
-python train.py --model_architecture 'SwinUNETR' --epochs 1000 --val_every 100 --data_shape '3d' --modality 'image' --data_path '/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti_crop/' --use_parallel --use_wandb
-
+python train.py --model_architecture 'SwinUNETR' --epochs 1000 --val_every 100 --data_shape '3d' --modality 'image' --data_path '/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti_crop/' --use_parallel --use_wandb 
