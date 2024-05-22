@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from glob import glob
@@ -62,9 +62,13 @@ def load_data(data_dir : str,
 
     #Create a DataFrame from the dictionary
     train_df = pd.DataFrame(data_dict)
-
-                
-
+    
+    print("--------------Scaling--------------")
+    # 스케일링할 열 선택
+    columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
+    # MinMaxScaler 객체 생성
+    scaler = MinMaxScaler()
+    train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
 
     print("--------------Class balance--------------")
     majority_class = train_df[train_df['target'] == 1.0]
