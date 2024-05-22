@@ -153,16 +153,17 @@ print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
 parser.add_argument("--epochs", default=100, type=int, help="Epoch")
 parser.add_argument("--val_every", default=10, type=int, help="Learning rate")
-parser.add_argument("--learning_rate", default=0.001, type=float, help="Learning rate")
+parser.add_argument("--learning_rate", default=1e-4, type=float, help="Learning rate")
+parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
+parser.add_argument("--optimizer", default='adamw', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
+parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
+parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
+parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
 parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
-parser.add_argument("--optimizer", default='adam', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
-parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
-parser.add_argument("--scheduler", default='StepLR', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
-parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
 parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
@@ -173,7 +174,7 @@ parser.add_argument("--mode", default='train', type=str, help="mode") # 'train',
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir, args.mode)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)

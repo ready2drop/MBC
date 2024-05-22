@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
 import scipy.ndimage as ndimage
 
-def logdir(str, mode):
+def logdir(str, mode, modality):
     seoul_timezone = timezone('Asia/Seoul')
     today_seoul = datetime.now(seoul_timezone)
     
     directory_name = today_seoul.strftime("%Y-%m-%d-%H-%M")
     
-    log_dir = str+directory_name + '-' + mode
+    log_dir = str+directory_name + '-' + mode + '-' + modality
     
     if os.path.exists(log_dir):
         pass

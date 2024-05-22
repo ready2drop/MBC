@@ -8,7 +8,6 @@ from model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
 
-from timeit import default_timer as timer
 from tqdm import tqdm
 import os
 import wandb
@@ -25,6 +24,7 @@ class Tester:
         self.scheduler = scheduler
         self.loss_fn = loss_fn
         self.device = device
+        self.epoch = dict['epochs']
         self.data_path = dict['data_path']
         self.excel_file = dict['excel_file']
         self.batch_size = dict['batch_size']
@@ -41,19 +41,23 @@ class Tester:
         print(f"model parameters are loaded successed.")
         
     def test(self):
+    
+        test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
+        total_test_loss = 0.0
+        total_test_acc = 0.0
+        
         self.model.eval()
         test_running_loss = 0.0
         correct_test = 0
         total_test = 0
         targets_all, predicted_all = [], []
 
-        test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
 
         with torch.no_grad():
-            with tqdm(total=len(test_loader), desc="Testing") as pbar: 
+            with tqdm(total=len(test_loader), desc=f"Testing") as pbar: 
                 if self.modality == 'mm':
-                    for images, Duct_diliatations_8mm, Duct_diliatation_10mm, Visible_stone_CT, Pancreatitis, targets in tqdm(test_loader, desc="Test"):
-                        outputs = self.model(images.to(self.device), Duct_diliatations_8mm.to(self.device), Duct_diliatation_10mm.to(self.device), Visible_stone_CT.to(self.device), Pancreatitis.to(self.device))
+                    for images, features, targets, _ in test_loader:
+                        outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
                         loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                         test_running_loss += loss.item()
                         predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
@@ -75,17 +79,20 @@ class Tester:
                         total_test += targets.size(0)
                         correct_test += (predicted == targets.to(self.device)).sum().item()
                         targets_all.append(targets.item())
-                        predicted_all.append(predicted.item())
+                        predicted_all.append(predicted.item())  
+                                            
                         if self.use_wandb:
                             wandb.log({"test_loss": loss.item(), "test_accuracy": (predicted == targets.to(self.device)).sum().item() / targets.size(0)})
                         pbar.update(1)
                         
             test_loss = test_running_loss / len(test_loader)
             test_acc = correct_test / total_test
+
+                
+                
                     
-        save_confusion_matrix_roc_curve(targets_all, predicted_all, self.log_dir)
-        print("Test : Accuracy: {} Loss: {}".format(test_acc, test_loss))
-        
+        print(f"Test: Epoch Loss: {test_loss}, Epoch Accuracy: {test_acc}")
+        save_confusion_matrix_roc_curve(targets_all, predicted_all, self.log_dir)     
         
         return test_loss, test_acc
 
@@ -97,8 +104,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
-parser.add_argument("--epochs", default=100, type=int, help="Epoch")
-parser.add_argument("--val_every", default=10, type=int, help="Learning rate")
+parser.add_argument("--epochs", default=10, type=int, help="Epoch")
 parser.add_argument("--learning_rate", default=0.001, type=float, help="Learning rate")
 parser.add_argument("--batch_size", default=1, type=int, help="Batch size")
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
@@ -120,7 +126,7 @@ parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir, args.mode)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
@@ -152,5 +158,7 @@ else:
 loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 tester = Tester(model, optimizer, scheduler, loss_fn, device, PARAMS)
 tester.load_state_dict(PARAMS['ckpt_path'])
-test_loss, test_acc = tester.test()
+tester.test()
+
+
 
