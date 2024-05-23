@@ -64,11 +64,11 @@ def load_data(data_dir : str,
     train_df = pd.DataFrame(data_dict)
     
     print("--------------Scaling--------------")
-    # 스케일링할 열 선택
-    columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
-    # MinMaxScaler 객체 생성
-    scaler = MinMaxScaler()
-    train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
+    if modality == 'mm':
+        # MinMaxScaler 객체 생성
+        columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
+        scaler = MinMaxScaler()
+        train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
 
     print("--------------Class balance--------------")
     majority_class = train_df[train_df['target'] == 1.0]
