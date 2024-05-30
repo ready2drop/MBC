@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import SMOTE
 from sklearn.utils import resample
 from glob import glob
 import os
@@ -71,6 +72,7 @@ def load_data(data_dir : str,
         train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
 
     print("--------------Class balance--------------")
+    # undersampling
     majority_class = train_df[train_df['target'] == 1.0]
     minority_class = train_df[train_df['target'] == 0.0]
 
@@ -83,12 +85,41 @@ def load_data(data_dir : str,
     # Concatenate minority class and undersampled majority class
     data = pd.concat([undersampled_majority_class, minority_class])
     print(data['target'].value_counts())
+    
+    if modality == 'mm':
+        ## oversampling
+        image_paths = train_df['image_path']
+        X = train_df.drop(['image_path','target'], axis=1)
+        y = train_df['target']
+
+        # Apply SMOTE
+        smote = SMOTE(random_state=42)
+        X_res, y_res = smote.fit_resample(X, y)
+
+        # Combine the resampled features and target into a single DataFrame
+        train_df_resampled = pd.concat([X_res, y_res], axis=1)
+        num_samples_to_add = len(train_df_resampled) - len(image_paths)
+        repeated_image_paths = pd.concat([image_paths, image_paths.sample(num_samples_to_add, replace=True)]).reset_index(drop=True)
+
+        train_df_resampled.insert(0, 'image_path', repeated_image_paths)
+        print(train_df_resampled['target'].value_counts())
+
+    print("--------------Scaling--------------")
+    if modality == 'mm':
+        # MinMaxScaler 객체 생성
+        columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
+        scaler = MinMaxScaler()
+        train_df_resampled[columns_to_scale] = scaler.fit_transform(train_df_resampled[columns_to_scale])
+
+        # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
+        train_data, test_data = train_test_split(train_df_resampled, test_size=0.3, stratify=train_df_resampled['target'], random_state=123)
+        valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
+    else: 
+        # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
+        train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
+        valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
 
 
-
-    # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
-    train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
-    valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
 
         
     if mode == 'train':
