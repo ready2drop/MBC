@@ -43,9 +43,7 @@ class Tester:
     def test(self):
     
         test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
-        total_test_loss = 0.0
-        total_test_acc = 0.0
-        
+        print(len(test_loader))
         self.model.eval()
         test_running_loss = 0.0
         correct_test = 0
@@ -106,15 +104,16 @@ print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
 parser.add_argument("--epochs", default=10, type=int, help="Epoch")
 parser.add_argument("--learning_rate", default=0.001, type=float, help="Learning rate")
+parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
+parser.add_argument("--optimizer", default='adamw', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
+parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
+parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
+parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
 parser.add_argument("--batch_size", default=1, type=int, help="Batch size")
 parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
-parser.add_argument("--optimizer", default='adam', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
-parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
-parser.add_argument("--scheduler", default='StepLR', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
-parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
 parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
