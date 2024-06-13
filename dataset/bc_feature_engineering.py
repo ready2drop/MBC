@@ -30,20 +30,25 @@ def load_data(data_dir : str,
     print(df['REAL_STONE'].value_counts())
 
     #Column rename
-    df.rename(columns={'환자번호': 'patient_id', '검사결과': 'blood_test', 'REAL_STONE':'target' }, inplace=True)
+    df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     #column select
-    columns = ['patient_id','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'SBP', 'DBP',
-        'HR', 'RR', 'BT', 'AGE', 'GENDER','blood_test', 'PANCREATITIS','target']
+    columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
 
     image_list = sorted(glob(os.path.join(data_dir,"*.nii.gz")))
 
     def get_patient_data(image_number):
-        row = df[df['patient_id'].astype(str).str.startswith(image_number)]
+        row = data[data['patient_id'].astype(str).str.startswith(image_number)]
         return row.iloc[0, 1:].tolist() if not row.empty else None
 
-    data_dict = {key: [] for key in ['image_path', 'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'GENDER', 'blood_test', 'PANCREATITIS', 'target']}
+    data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
 
     for image_path in image_list:
         image_number = os.path.basename(image_path).split('_')[0]
@@ -67,7 +72,9 @@ def load_data(data_dir : str,
     print("--------------Scaling--------------")
     if modality == 'mm':
         # MinMaxScaler 객체 생성
-        columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
+        columns_to_scale = ['EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT','AGE']
         scaler = MinMaxScaler()
         train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
 
@@ -85,39 +92,41 @@ def load_data(data_dir : str,
     # Concatenate minority class and undersampled majority class
     data = pd.concat([undersampled_majority_class, minority_class])
     print(data['target'].value_counts())
+    train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
+    valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
     
-    if modality == 'mm':
-        ## oversampling
-        image_paths = train_df['image_path']
-        X = train_df.drop(['image_path','target'], axis=1)
-        y = train_df['target']
+    # if modality == 'mm':
+    #     ## oversampling
+    #     image_paths = train_df['image_path']
+    #     X = train_df.drop(['image_path','target'], axis=1)
+    #     y = train_df['target']
 
-        # Apply SMOTE
-        smote = SMOTE(random_state=42)
-        X_res, y_res = smote.fit_resample(X, y)
+    #     # Apply SMOTE
+    #     smote = SMOTE(random_state=42)
+    #     X_res, y_res = smote.fit_resample(X, y)
 
-        # Combine the resampled features and target into a single DataFrame
-        train_df_resampled = pd.concat([X_res, y_res], axis=1)
-        num_samples_to_add = len(train_df_resampled) - len(image_paths)
-        repeated_image_paths = pd.concat([image_paths, image_paths.sample(num_samples_to_add, replace=True)]).reset_index(drop=True)
+    #     # Combine the resampled features and target into a single DataFrame
+    #     train_df_resampled = pd.concat([X_res, y_res], axis=1)
+    #     num_samples_to_add = len(train_df_resampled) - len(image_paths)
+    #     repeated_image_paths = pd.concat([image_paths, image_paths.sample(num_samples_to_add, replace=True)]).reset_index(drop=True)
 
-        train_df_resampled.insert(0, 'image_path', repeated_image_paths)
-        print(train_df_resampled['target'].value_counts())
+    #     train_df_resampled.insert(0, 'image_path', repeated_image_paths)
+    #     print(train_df_resampled['target'].value_counts())
 
-    print("--------------Scaling--------------")
-    if modality == 'mm':
-        # MinMaxScaler 객체 생성
-        columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
-        scaler = MinMaxScaler()
-        train_df_resampled[columns_to_scale] = scaler.fit_transform(train_df_resampled[columns_to_scale])
+    # print("--------------Scaling--------------")
+    # if modality == 'mm':
+    #     # MinMaxScaler 객체 생성
+    #     columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
+    #     scaler = MinMaxScaler()
+    #     train_df_resampled[columns_to_scale] = scaler.fit_transform(train_df_resampled[columns_to_scale])
 
-        # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
-        train_data, test_data = train_test_split(train_df_resampled, test_size=0.3, stratify=train_df_resampled['target'], random_state=123)
-        valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
-    else: 
-        # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
-        train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
-        valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
+    #     # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
+    #     train_data, test_data = train_test_split(train_df_resampled, test_size=0.3, stratify=train_df_resampled['target'], random_state=123)
+    #     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
+    # else: 
+    #     # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
+    #     train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
+    #     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
 
 
 

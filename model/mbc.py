@@ -64,7 +64,7 @@ class MultiModalbileductClassifier_3d(nn.Module):
         weight = torch.load(self.pretrain_path)
         model.load_from(weights=weight)
         self.model = model
-        self.feature_dim = 11  # number of features
+        self.feature_dim = 18  # number of features
 
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
         self.fc = nn.Sequential(nn.Linear(self.num_features + self.feature_dim, 256),

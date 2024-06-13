@@ -195,13 +195,22 @@ elif PARAMS['modality'] == 'image':
         model = ImagebileductClassifier_2d(PARAMS)
 else: 
     pass
-    
+
+# Model freeze    
+for param in model.parameters(): 
+    param.requires_grad = False
+  
+for param in model.fc.parameters():
+    param.requires_grad = True
+        
 # Data parallel
 if PARAMS['use_parallel']:
     model = DataParallel(model, device_ids=[i for i in range(PARAMS['num_gpus'])]).to(device)
 else:
     model.to(device)    
 
+
+    
 # loss, optimizer, scheduler
 loss_fn, optimizer, scheduler = get_optimizer_loss_scheduler(PARAMS, model)
 
