@@ -23,7 +23,7 @@ from torch.nn.parallel import DataParallel
 import nibabel as nib
 import numpy as np
 import torch
-from .utils import get_loader, dice, resample_3d
+from utils import get_loader, dice, resample_3d
 
 
 from monai.inferers import sliding_window_inference
@@ -33,14 +33,14 @@ warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument(
-    "--pretrained_dir", default="./pretrained_models/", type=str, help="pretrained checkpoint directory"
+    "--pretrained_dir", default="/home/irteam/rkdtjdals97-dcloud-dir/MBC/preprocessing/", type=str, help="pretrained checkpoint directory"
 )
 parser.add_argument("--data_dir", default="/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part1_nifti/", type=str, help="dataset directory")
 parser.add_argument("--exp_name", default="test1", type=str, help="experiment name")
 parser.add_argument("--json_list", default="dataset.json", type=str, help="dataset json file")
 parser.add_argument(
     "--pretrained_model_name",
-    default="/home/irteam/rkdtjdals97-dcloud-dir/research-contributions/SwinUNETR/BTCV/pretrained_models/0.8433602452278137_best_metric_model.pth",
+    default="best_metric_model.pth",
     type=str,
     help="pretrained model name",
 )

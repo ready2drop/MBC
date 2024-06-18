@@ -83,6 +83,14 @@ class CustomDataset(Dataset):
         # Apply transformations based on the mode
         img_name = self.dataframe.iloc[idx, 0] # 0 is the index of image_path in train_data
 
+        # Check the shape of the image and handle if it doesn't meet the criteria
+        image = transforms.LoadImage(image_only=True)(img_name)
+        if image.shape[0] != 512 or image.shape[1] != 512 or image.shape[2] is None:
+            # print(f"Skipping image {img_name} due to incorrect shape: {image.shape}")
+            idx = (idx + 1) % len(self.dataframe)
+            img_name = self.dataframe.iloc[idx, 0]
+
+        
         if self.mode == 'train':
             image = self.train_transform(img_name)
         elif self.mode == 'val':

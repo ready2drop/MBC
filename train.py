@@ -25,7 +25,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed) #numpy를 사용할 경우 고정
     random.seed(seed) #파이썬 자체 모듈 random 모듈의 시드 고정
-seed_everything(40)
+seed_everything(42)
     
 # Training and Valaidation
 class Trainer:

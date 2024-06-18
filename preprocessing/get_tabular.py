@@ -164,6 +164,7 @@ def blood_preprocessing(his_df, emr_df):
         return blood_df
     
 def total_preprocessing(df):
+        df['SEX'] = df['SEX'].replace({'M': 1, 'F': 0})
         for col in df.columns:
             if df[col].dtype == 'int64':
                 df[col].fillna(0, inplace=True)
