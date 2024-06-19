@@ -15,7 +15,7 @@ This repository contains code for training and testing a Multimodal Bile Duct St
 
 ## Introduction
 
-This classifier is designed to classify bile duct stone images using a multimodal approach, combining different types of medical images. The model architecture used is based on the EfficientNet-B0 architecture, and training is performed using a binary cross-entropy loss function. Testing evaluates the trained model on a separate test set and provides accuracy and loss metrics.
+This classifier is designed to classify bile duct stone images using a multimodal approach, combining different types of medical images. The model architecture used to the 2D, 3D input, and training is performed using a binary cross-entropy loss function. Testing evaluates the trained model on a separate test set and provides accuracy and loss metrics.
 
 ## Requirements
 
