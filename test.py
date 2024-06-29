@@ -65,7 +65,8 @@ class Tester:
             with tqdm(total=len(test_loader), desc=f"Testing") as pbar: 
                 if self.modality == 'mm':
                     for images, features, targets, _ in test_loader:
-                        outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                        # outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                        outputs = self.model(images.to(self.device), features.to(self.device))
                         loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                         test_running_loss += loss.item()
                         predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions

@@ -15,11 +15,8 @@ def load_data(data_dir : str,
     
     
     print("--------------Load RawData--------------")
-    if excel_file.split('.')[-1]=='xlsx': 
-        df = pd.read_excel(os.path.join(data_dir, excel_file), engine='openpyxl')
-        df = df[df['Inclusion']==1.0]
-    else: 
-        df = pd.read_csv(os.path.join(data_dir, excel_file))
+    df = pd.read_csv(os.path.join(data_dir, excel_file))
+    
     #Inclusion
     print("--------------Inclusion--------------")
     print('Total : ', len(df))
@@ -31,11 +28,13 @@ def load_data(data_dir : str,
 
     #Column rename
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
-    #column select
+    
+    #Column select
     columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
        'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
 
@@ -44,7 +43,8 @@ def load_data(data_dir : str,
     def get_patient_data(image_number):
         row = data[data['patient_id'].astype(str).str.startswith(image_number)]
         return row.iloc[0, 1:].tolist() if not row.empty else None
-
+    
+    # Rename column 
     data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
        'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
@@ -63,15 +63,19 @@ def load_data(data_dir : str,
 
     if modality == 'image':
             data_dict = {k: data_dict[k] for k in ['image_path', 'target']}
-    elif modality != 'mm':
-        raise AssertionError("Feature engineering error")
+            
+    elif modality not in ['mm', 'tabular']:
+        raise AssertionError("Select Modality for Feature engineering!")
 
     #Create a DataFrame from the dictionary
     train_df = pd.DataFrame(data_dict)
     
+    #if only  tabular use 
+    if modality == 'tabular':
+        train_df = data
+        
     print("--------------Scaling--------------")
-    if modality == 'mm':
-        # MinMaxScaler 객체 생성
+    if modality in ['mm', 'tabular']:
         columns_to_scale = ['EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
        'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT','AGE']
@@ -129,10 +133,8 @@ def load_data(data_dir : str,
     #     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
 
 
-
         
     if mode == 'train':
-        # Printing the shapes of the resulting datasets
         print("Train set shape:", train_data.shape)
         print("Validation set shape:", valid_data.shape)
         return train_data, valid_data

@@ -4,6 +4,8 @@ from torchvision import models
 import torch.nn.functional as F
 from monai.networks import nets
 
+
+
 class MultiModalbileductClassifier_2d(nn.Module):
     def __init__(self,dict):
         self.num_classes = dict['num_classes']
@@ -50,6 +52,10 @@ class MultiModalbileductClassifier_2d(nn.Module):
         
         return output
     
+    
+
+
+    
 class MultiModalbileductClassifier_3d(nn.Module):
     def __init__(self, dict):
         self.num_classes = dict['num_classes']
@@ -85,14 +91,15 @@ class MultiModalbileductClassifier_3d(nn.Module):
         x = self.model.encoder4(hidden_states_out[2]) # torch.Size([1, 192, 12, 12, 12])
         # x = self.model.encoder10(hidden_states_out[4]) # torch.Size([1, 768, 3, 3, 3])
         # SwinUNetR의 출력을 classifier에 통과시켜서 분류 작업 수행
-        x = self.global_avg_pool(x) # torch.Size([1, 768, 1, 1, 1])
-        x = x.view(x.size(0), -1) # torch.Size([1, 1024])
-
-        # Concatenate image features with additional features
-        additional_features = torch.cat([feature.view(-1, 1) for feature in features], dim=1)
-        combined_features = torch.cat((x, additional_features), dim=1)
+        x = self.global_avg_pool(x) # torch.Size([1, 192, 1, 1, 1])
+        x = x.view(x.size(0), -1) # torch.Size([1, 192])
         
+        # Concatenate image features with additional features
+        # additional_features = torch.cat([feature.view(-1, 1) for feature in features], dim=1) # torch.Size([1, num_features])
+        additional_features = features
+        combined_features = torch.cat((x, additional_features), dim=1) # torch.Size([1, 192 + num_features])
+
         # Fully connected layers for classification
         x = self.fc(combined_features)
-        
+
         return x

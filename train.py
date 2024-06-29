@@ -5,6 +5,7 @@ from torch.nn.parallel import DataParallel
 from dataset.bc_dataloader import getloader_bc
 from model.mbc import MultiModalbileductClassifier_2d, MultiModalbileductClassifier_3d
 from model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
+from model.tabnet import TabNet
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
 
@@ -18,13 +19,13 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def seed_everything(seed):
-    torch.manual_seed(seed) #torch를 거치는 모든 난수들의 생성순서를 고정한다
-    torch.cuda.manual_seed(seed) #cuda를 사용하는 메소드들의 난수시드는 따로 고정해줘야한다 
-    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
-    torch.backends.cudnn.deterministic = True #딥러닝에 특화된 CuDNN의 난수시드도 고정 
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed) 
+    torch.cuda.manual_seed_all(seed)  
+    torch.backends.cudnn.deterministic = True 
     torch.backends.cudnn.benchmark = False
-    np.random.seed(seed) #numpy를 사용할 경우 고정
-    random.seed(seed) #파이썬 자체 모듈 random 모듈의 시드 고정
+    np.random.seed(seed) 
+    random.seed(seed) 
 seed_everything(42)
     
 # Training and Valaidation
@@ -55,7 +56,8 @@ class Trainer:
             if self.modality == 'mm':
                 for images, features, targets, _ in train_loader:
                     self.optimizer.zero_grad()
-                    outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                    # outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                    outputs = self.model(images.to(self.device), features.to(self.device))
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                     loss.backward()
                     self.optimizer.step()
@@ -134,7 +136,8 @@ class Trainer:
         with torch.no_grad():
             if self.modality == 'mm':
                 for images, features, targets, _ in tqdm(valid_loader, desc="Validation"):
-                    outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                    # outputs = self.model(images.to(self.device), [feature.to(self.device) for feature in features])
+                    outputs = self.model(images.to(self.device), features.to(self.device))
                     loss = self.loss_fn(outputs.squeeze(), targets.squeeze().float().to(self.device))  # Squeeze output and convert labels to float
                     val_running_loss += loss.item()
                     predicted = (outputs > 0).squeeze().long()  # Convert outputs to binary predictions
@@ -206,11 +209,11 @@ else:
     pass
 
 # Model freeze    
-for param in model.parameters(): 
-    param.requires_grad = False
+# for param in model.parameters(): 
+#     param.requires_grad = False
   
-for param in model.fc.parameters():
-    param.requires_grad = True
+# for param in model.fc.parameters():
+#     param.requires_grad = True
         
 # Data parallel
 if PARAMS['use_parallel']:
