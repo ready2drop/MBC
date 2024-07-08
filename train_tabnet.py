@@ -6,8 +6,8 @@ from dataset.bc_dataloader import getloader_bc
 from model.image_encoder import ImageEncoder3D
 from model.tabular_encoder import TabularEncoder
 from pytorch_tabnet.tab_model import TabNetClassifier
+from pytorch_tabnet.pretraining import TabNetPretrainer
 
-from model.tabnet import TabNet
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
 
@@ -51,9 +51,10 @@ parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary 
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
-parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part3_nifti_crop/', type=str, help="Directory of dataset")
-parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--excel_file", default='dumc_0618.csv', type=str, help="tabular data")
+parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti_crop/', type=str, help="Directory of dataset")
+parser.add_argument("--image_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/model_swinvit.pt', type=str, help="Image pretrained weight path")
+parser.add_argument("--tabnet_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/pretrain_model.zip', type=str, help="TabNet pretrained weight path")
+parser.add_argument("--excel_file", default='dumc_0702.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'
@@ -131,7 +132,12 @@ tabnet_params = {"cat_emb_dim":2,
 # Adjust tabnet_params to include combined_dim
 tabnet_params['input_dim'] = combined_dim
 tabnet_params['output_dim'] = PARAMS['num_classes']
-     
+
+# Load pretrained model
+loaded_pretrain = TabNetPretrainer()
+loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
+print('All weights are loaded!')    
+
 tabnet_clf = TabNetClassifier(**tabnet_params
                       )
         
@@ -144,11 +150,12 @@ tabnet_clf.fit(
     patience=100,
     batch_size=1024, virtual_batch_size=128,
     num_workers=0,
-    drop_last=False
+    drop_last=False,
+    from_unsupervised=loaded_pretrain
 ) 
 
 # save tabnet model
-saving_path_name = f'{args.log_dir}/best_epoch_weights'
+saving_path_name = f"{PARAMS['log_dir']}/best_epoch_weights_{PARAMS['output_dim']}"
 saved_filepath = tabnet_clf.save_model(saving_path_name)
 
 

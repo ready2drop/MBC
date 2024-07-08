@@ -34,6 +34,10 @@ def load_data(data_dir : str,
        'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    # columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+    #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -49,6 +53,11 @@ def load_data(data_dir : str,
        'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    # data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+    #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+
 
     for image_path in image_list:
         image_number = os.path.basename(image_path).split('_')[0]
@@ -95,6 +104,7 @@ def load_data(data_dir : str,
 
     # Concatenate minority class and undersampled majority class
     data = pd.concat([undersampled_majority_class, minority_class])
+    # data = train_df
     print(data['target'].value_counts())
     train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)

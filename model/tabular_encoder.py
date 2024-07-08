@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .tabnet import TabNetEncoder
+
 # class TabularEncoder(nn.Module):
 #     def __init__(self, dict):
 #         self.input_dim = dict['input_dim']

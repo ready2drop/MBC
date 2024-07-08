@@ -213,10 +213,10 @@ def main(data_path, vital_blood_excel, ct_excel, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get json")
-    parser.add_argument("--data_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part3_nifti/', type=str, help="data directory")
+    parser.add_argument("--data_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti/', type=str, help="data directory")
     parser.add_argument("--vital_blood_excel", default='20240502_소화기내과 연구용 자료신청_활력징후와혈액검사_부가설명포함.xlsx', type=str, help="vital blood excel name")
-    parser.add_argument("--ct_excel", default='bileduct_data_20240616c.xlsx', type=str, help="ct excel name")
-    parser.add_argument("--output", default='dumc_0618.csv', type=str, help="output name")
+    parser.add_argument("--ct_excel", default='bileduct_data_20240629b.xlsx', type=str, help="ct excel name")
+    parser.add_argument("--output", default='dumc_0702.csv', type=str, help="output name")
     
     args = parser.parse_args()
     

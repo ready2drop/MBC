@@ -43,7 +43,7 @@ class ImagebileductClassifier_3d(nn.Module):
         self.num_features = dict['num_features']
         self.model_architecture = dict['model_architecture']
         self.model_parameters = dict['model_parameters']
-        self.pretrain_path = dict['pretrain_path']
+        self.pretrain_path = dict['image_pretrain_path']
         super(ImagebileductClassifier_3d, self).__init__()
         
         # Load pre-trained backbone model

@@ -9,7 +9,6 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 
 from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
 
-from model.tabnet import TabNet
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
 
@@ -55,13 +54,13 @@ parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Bi
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part3_nifti_crop/', type=str, help="Directory of dataset")
 parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-06-29-21-15-train-mm/best_epoch_weights.zip', type=str, help="finetuned weight path")
+parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-02-17-03-train-mm/best_epoch_weights_512.zip', type=str, help="finetuned weight path")
 parser.add_argument("--excel_file", default='dumc_0618.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
-parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
+parser.add_argument("--output_dim", default=512, type=int, help="output dimension") # output dimension of each encoder
 parser.add_argument("--input_dim", default=18, type=int, help="num_features") # tabular features
 
 args = parser.parse_args()

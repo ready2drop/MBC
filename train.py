@@ -5,7 +5,7 @@ from torch.nn.parallel import DataParallel
 from dataset.bc_dataloader import getloader_bc
 from model.mbc import MultiModalbileductClassifier_2d, MultiModalbileductClassifier_3d
 from model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
-from model.tabnet import TabNet
+
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
 
@@ -178,8 +178,8 @@ parser.add_argument("--use_parallel", action='store_true', help="Use Weights and
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
-parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--excel_file", default='combined.csv', type=str, help="tabular data")
+parser.add_argument("--image_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--excel_file", default='dumc_0702.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'

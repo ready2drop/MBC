@@ -9,7 +9,7 @@ class ImageEncoder3D(nn.Module):
         self.num_features = dict['num_features']
         self.model_architecture = dict['model_architecture']
         self.model_parameters = dict['model_parameters']
-        self.pretrain_path = dict['pretrain_path']
+        self.pretrain_path = dict['image_pretrain_path']
         super(ImageEncoder3D, self).__init__()
         
         # Load pre-trained backbone model
@@ -26,6 +26,7 @@ class ImageEncoder3D(nn.Module):
                                 nn.Dropout(p=0.5),
                                 nn.Linear(256, self.output_dim),
                                 )
+ 
                 
     def forward(self, image):
         # SwinUNetR의 forward 메서드 호출
@@ -34,10 +35,8 @@ class ImageEncoder3D(nn.Module):
         x = self.model.encoder2(hidden_states_out[0]) # torch.Size([1, 48, 48, 48, 48])
         x = self.model.encoder3(hidden_states_out[1]) # torch.Size([1, 96, 24, 24, 24])
         x = self.model.encoder4(hidden_states_out[2]) # torch.Size([1, 192, 12, 12, 12])
-        
-        x = self.global_avg_pool(x) # torch.Size([1, 768, 1, 1, 1])
-        x = x.view(x.size(0), -1) # torch.Size([1, 1024])
-        
+        x = self.global_avg_pool(x) # torch.Size([1, 192, 1, 1, 1])
+        x = x.view(x.size(0), -1) # torch.Size([1, 192])
         x = self.fc(x)
         
         return x
