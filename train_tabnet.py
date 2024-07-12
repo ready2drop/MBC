@@ -3,15 +3,12 @@ import torch.nn as nn
 from torch.nn.parallel import DataParallel
 
 from dataset.bc_dataloader import getloader_bc
-from model.image_encoder import ImageEncoder3D
-from model.tabular_encoder import TabularEncoder
-from pytorch_tabnet.tab_model import TabNetClassifier
-from pytorch_tabnet.pretraining import TabNetPretrainer
-
+from model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
+from model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
 from utils.loss import get_optimizer_loss_scheduler
 from utils.util import logdir, get_model_parameters
 
-from timeit import default_timer as timer
+import pickle  # For saving models
 from tqdm import tqdm
 import numpy as np
 import random
@@ -19,6 +16,13 @@ import wandb
 import argparse
 import warnings
 warnings.filterwarnings('ignore')
+
+from pytorch_tabnet.tab_model import TabNetClassifier
+from pytorch_tabnet.pretraining import TabNetPretrainer
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -51,7 +55,7 @@ parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary 
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
-parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti_crop/', type=str, help="Directory of dataset")
+parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti_crop_ver2/', type=str, help="Directory of dataset")
 parser.add_argument("--image_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/model_swinvit.pt', type=str, help="Image pretrained weight path")
 parser.add_argument("--tabnet_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/pretrain_model.zip', type=str, help="TabNet pretrained weight path")
 parser.add_argument("--excel_file", default='dumc_0702.csv', type=str, help="tabular data")
@@ -61,6 +65,7 @@ parser.add_argument("--mode", default='train', type=str, help="mode") # 'train',
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
 parser.add_argument("--input_dim", default=18, type=int, help="num_features") # tabular features
+parser.add_argument("--fusion", default='intermediate', type=str, help="num_features") # 'early','intermediate', 'late'
 
 args = parser.parse_args()
 args.log_dir = logdir(args.log_dir, args.mode, args.modality)
@@ -72,13 +77,28 @@ if PARAMS['use_wandb'] == True:
     wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['data_shape']}", config=PARAMS)
 
 
-# Image Encoder
-image_encoder = ImageEncoder3D(PARAMS).to(device)
-# Tabular Encoder
-tabular_encoder = TabularEncoder(PARAMS).to(device)
+if PARAMS['fusion'] == 'early':
+    # Image Encoder
+    image_encoder = ImageEncoder3D_earlyfusion(PARAMS).to(device)
+    # Tabular Encoder
+    tabular_encoder = TabularEncoder_earlyfusion(PARAMS).to(device)
+    # Combined dimension
+    combined_dim = PARAMS['input_dim']*2
+    
+elif PARAMS['fusion'] == 'intermediate': 
+    # Image Encoder
+    image_encoder = ImageEncoder3D_latefusion(PARAMS).to(device)
+    # Tabular Encoder
+    tabular_encoder = TabularEncoder_earlyfusion(PARAMS).to(device)
+    # Combined dimension
+    combined_dim = PARAMS['input_dim'] + PARAMS['output_dim']
+else: 
+    # Image Encoder
+    image_encoder = ImageEncoder3D_latefusion(PARAMS).to(device)
+    # Tabular Encoder
+    tabular_encoder = TabularEncoder_latefusion(PARAMS).to(device)
+    
 
-# Combined dimension
-combined_dim = PARAMS['output_dim']*2
 
 train_loader, valid_loader = getloader_bc(PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['mode'], PARAMS['modality'])
 
@@ -119,6 +139,43 @@ y_val = np.hstack(y_val)
 
 print('X_train shape : ', X_train.shape, 'y_train shape : ', y_train.shape, 'X_test shape : ', X_val.shape, 'y_test shape : ', y_val.shape) 
 
+# Train and evaluate models
+def train_and_evaluate_model(model, X_train, y_train, X_val, y_val, model_name):
+    model.fit(X_train, y_train)
+    y_train_pred = model.predict_proba(X_train)[:, 1]
+    y_val_pred = model.predict_proba(X_val)[:, 1]
+    
+    train_auc = roc_auc_score(y_train, y_train_pred)
+    val_auc = roc_auc_score(y_val, y_val_pred)
+    
+    train_acc = accuracy_score(y_train, (y_train_pred > 0.5).astype(int))
+    val_acc = accuracy_score(y_val, (y_val_pred > 0.5).astype(int))
+    
+    train_logloss = log_loss(y_train, y_train_pred)
+    val_logloss = log_loss(y_val, y_val_pred)
+    
+    print(f'{model_name} - Train AUC: {train_auc}, Val AUC: {val_auc}')
+    print(f'{model_name} - Train Accuracy: {train_acc}, Val Accuracy: {val_acc}')
+    print(f'{model_name} - Train LogLoss: {train_logloss}, Val LogLoss: {val_logloss}')
+    
+# XGBoost
+xgb_model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
+train_and_evaluate_model(xgb_model, X_train, y_train, X_val, y_val, 'XGBoost')
+with open(f"{PARAMS['log_dir']}/xgb_model.pkl", 'wb') as f:
+    pickle.dump(xgb_model,  f)  # Save the XGBoost model
+
+# LightGBM
+lgbm_model = LGBMClassifier(random_state=42)
+train_and_evaluate_model(lgbm_model, X_train, y_train, X_val, y_val, 'LightGBM')
+with open(f"{PARAMS['log_dir']}/lgbm_model.pkl", 'wb') as f:
+    pickle.dump(lgbm_model,  f)  # Save the XGBoost model
+
+# RandomForest
+rf_model = RandomForestClassifier(random_state=42)
+train_and_evaluate_model(rf_model, X_train, y_train, X_val, y_val, 'RandomForest')
+with open(f"{PARAMS['log_dir']}/rf_model.pkl", 'wb') as f:
+    pickle.dump(rf_model,  f)  # Save the XGBoost model
+
 # Set tabnet_params
 tabnet_params = {"cat_emb_dim":2,
             "optimizer_fn":torch.optim.Adam,
@@ -134,9 +191,9 @@ tabnet_params['input_dim'] = combined_dim
 tabnet_params['output_dim'] = PARAMS['num_classes']
 
 # Load pretrained model
-loaded_pretrain = TabNetPretrainer()
-loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
-print('All weights are loaded!')    
+# loaded_pretrain = TabNetPretrainer()
+# loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
+# print('All weights are loaded!')    
 
 tabnet_clf = TabNetClassifier(**tabnet_params
                       )
@@ -147,15 +204,15 @@ tabnet_clf.fit(
     eval_name=['train', 'valid'],
     eval_metric=['auc', 'accuracy', 'balanced_accuracy', 'logloss'],
     max_epochs=1000,
-    patience=100,
+    patience=50,
     batch_size=1024, virtual_batch_size=128,
     num_workers=0,
     drop_last=False,
-    from_unsupervised=loaded_pretrain
+    # from_unsupervised=loaded_pretrain
 ) 
 
 # save tabnet model
-saving_path_name = f"{PARAMS['log_dir']}/best_epoch_weights_{PARAMS['output_dim']}"
+saving_path_name = f"{PARAMS['log_dir']}/tabnet_{PARAMS['output_dim']}"
 saved_filepath = tabnet_clf.save_model(saving_path_name)
 
 

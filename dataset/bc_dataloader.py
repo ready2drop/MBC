@@ -22,12 +22,12 @@ class CustomDataset(Dataset):
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
             # transforms.CropForeground(),
-            transforms.SpatialCrop(roi_center=(300, 250, 0), roi_size=(256,256,1000)),
+            # transforms.SpatialCrop(roi_center=(300, 250, 0), roi_size=(256,256,1000)),
             transforms.Spacing(
                 pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear"),
             ),
-            transforms.Zoom(zoom=1.2),
+            # transforms.Zoom(zoom=1.2),
             transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.RandFlip(prob=0.1, spatial_axis=0),
             transforms.RandFlip(prob=0.1, spatial_axis=1),
@@ -45,7 +45,7 @@ class CustomDataset(Dataset):
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
             ),  
-            transforms.SpatialCrop(roi_center=(300, 250, 0), roi_size=(256,256,1000)),
+            # transforms.SpatialCrop(roi_center=(300, 250, 0), roi_size=(256,256,1000)),
             transforms.Spacing(
                 pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear"),
@@ -68,7 +68,7 @@ class CustomDataset(Dataset):
                 mode=("bilinear"),
             ),
             transforms.CropForeground(),
-            transforms.SpatialCrop(roi_center=(200, 200, 0), roi_size=(256,256,1000)),
+            # transforms.SpatialCrop(roi_center=(200, 200, 0), roi_size=(256,256,1000)),
             transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.ToTensor(),
         ])

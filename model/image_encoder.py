@@ -3,14 +3,30 @@ import torch.nn as nn
 from monai.networks import nets
 
 
-class ImageEncoder3D(nn.Module):
+class ImageEncoder3D_earlyfusion(nn.Module):
+    def __init__(self, dict):
+        self.output_dim = dict['output_dim']
+        super(ImageEncoder3D_earlyfusion, self).__init__()
+        
+        # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
+        self.fc = nn.Linear(1*96*96*96, self.output_dim)
+ 
+                
+    def forward(self, x):
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+    
+    
+    
+class ImageEncoder3D_latefusion(nn.Module):
     def __init__(self, dict):
         self.output_dim = dict['output_dim']
         self.num_features = dict['num_features']
         self.model_architecture = dict['model_architecture']
         self.model_parameters = dict['model_parameters']
         self.pretrain_path = dict['image_pretrain_path']
-        super(ImageEncoder3D, self).__init__()
+        super(ImageEncoder3D_latefusion, self).__init__()
         
         # Load pre-trained backbone model
         model = getattr(nets, self.model_architecture)(**self.model_parameters)

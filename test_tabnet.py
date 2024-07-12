@@ -18,7 +18,9 @@ import numpy as np
 import random
 import wandb
 import argparse
+import pickle
 import warnings
+
 warnings.filterwarnings('ignore')
 
 def seed_everything(seed):
@@ -52,15 +54,18 @@ parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary 
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
-parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part3_nifti_crop/', type=str, help="Directory of dataset")
-parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-02-17-03-train-mm/best_epoch_weights_512.zip', type=str, help="finetuned weight path")
-parser.add_argument("--excel_file", default='dumc_0618.csv', type=str, help="tabular data")
+parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti_crop_ver2/', type=str, help="Directory of dataset")
+parser.add_argument("--image_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--tabnet_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-09-20-04-train-mm/tabnet_128.zip', type=str, help="finetuned weight path")
+parser.add_argument("--xgboost_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-09-20-04-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--lightgbm_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-09-20-04-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--rf_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-09-20-04-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--excel_file", default='dumc_0702.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
-parser.add_argument("--output_dim", default=512, type=int, help="output dimension") # output dimension of each encoder
+parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
 parser.add_argument("--input_dim", default=18, type=int, help="num_features") # tabular features
 
 args = parser.parse_args()
@@ -106,6 +111,53 @@ y_test = np.hstack(y_test)
 
 print('X_test shape : ', X_test.shape, 'y_test shape : ', y_test.shape) 
 
+def evaluate_model(model, X_test, y_test, model_name):
+    preds = model.predict_proba(X_test)[:, 1]
+    test_auc = roc_auc_score(y_test, preds)
+
+    # Convert probabilities to binary predictions
+    test_preds_binary = (preds >= 0.5).astype(int)
+
+    save_confusion_matrix_roc_curve(y_test, test_preds_binary, args.log_dir, model_name) 
+    # Confusion matrix for the test set
+    conf_matrix_test = confusion_matrix(y_test, test_preds_binary)
+    # Compute ROC curve and AUC
+    fpr, tpr, _ = roc_curve(y_test, test_preds_binary)
+    roc_auc = auc(fpr, tpr)
+    # Metrics for the test set
+    accuracy_test = accuracy_score(y_test, test_preds_binary)
+    sensitivity_test = recall_score(y_test, test_preds_binary)  # Sensitivity is also called recall
+    specificity_test = recall_score(y_test, test_preds_binary, pos_label=0)
+    precision_test = precision_score(y_test, test_preds_binary)
+
+    print("\nConfusion Matrix for Test Set:")
+    print(conf_matrix_test)
+    print('ROC curve (area = %0.2f)' % roc_auc)
+    print(f"Test Accuracy: {accuracy_test}")
+    print(f"Test Sensitivity (Recall): {sensitivity_test}")
+    print(f"Test Specificity: {specificity_test}")
+    print(f"Test Precision: {precision_test}")
+    print(f"FINAL TEST SCORE FOR MBC : {test_auc}")
+    return test_auc
+
+# Load and evaluate RandomForest model
+with open(PARAMS['xgboost_ckpt_path'], 'rb') as f:
+    xgb_model = pickle.load(f)
+print("Evaluating XGBoost Model")
+evaluate_model(xgb_model, X_test, y_test, 'XGBoost')
+
+# Load and evaluate RandomForest model
+with open(PARAMS['lightgbm_ckpt_path'], 'rb') as f:
+    lgbm_model = pickle.load(f)
+print("Evaluating LightGBM Model")
+evaluate_model(lgbm_model, X_test, y_test, 'LightGBM')
+
+# Load and evaluate RandomForest model
+with open(PARAMS['rf_ckpt_path'], 'rb') as f:
+    rf_model = pickle.load(f)
+print("Evaluating RandomForest Model")
+evaluate_model(rf_model, X_test, y_test, 'RandomForest')
+
 # Set tabnet_params
 tabnet_params = {"cat_emb_dim":2,
             "optimizer_fn":torch.optim.Adam,
@@ -123,35 +175,8 @@ tabnet_params['output_dim'] = PARAMS['num_classes']
 tabnet_clf = TabNetClassifier(**tabnet_params
                       )
 
-tabnet_clf.load_model(PARAMS['ckpt_path'])        
+tabnet_clf.load_model(PARAMS['tabnet_ckpt_path'])        
+print("Evaluating TabNet Model")
+evaluate_model(tabnet_clf, X_test, y_test, 'TabNet')
 
-# Predict probabilities
-preds = tabnet_clf.predict_proba(X_test)
-test_auc = roc_auc_score(y_score=preds[:,1], y_true=y_test)
-
-
-# Convert probabilities to binary predictions
-test_preds_binary = (preds[:, 1] >= 0.5).astype(int)
-
-save_confusion_matrix_roc_curve(y_test, test_preds_binary, args.log_dir) 
-# Confusion matrix for the test set
-conf_matrix_test = confusion_matrix(y_test, test_preds_binary)
-# Compute ROC curve and AUC
-fpr, tpr, _ = roc_curve(y_test, test_preds_binary)
-roc_auc = auc(fpr, tpr)
-# Metrics for the test set
-accuracy_test = accuracy_score(y_test, test_preds_binary)
-sensitivity_test = recall_score(y_test, test_preds_binary)  # Sensitivity is also called recall
-specificity_test = recall_score(y_test, test_preds_binary, pos_label=0)
-precision_test = precision_score(y_test, test_preds_binary)
-
-
-print("\nConfusion Matrix for Test Set:")
-print(conf_matrix_test)
-print('ROC curve (area = %0.2f)' % roc_auc)
-print(f"Test Accuracy: {accuracy_test}")
-print(f"Test Sensitivity (Recall): {sensitivity_test}")
-print(f"Test Specificity: {specificity_test}")
-print(f"Test Precision: {precision_test}")
-print(f"FINAL TEST SCORE FOR MBC : {test_auc}")
 
