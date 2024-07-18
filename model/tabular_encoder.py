@@ -30,7 +30,10 @@ class TabularEncoder_latefusion(nn.Module):
         
         super(TabularEncoder_latefusion, self).__init__()
         
-        self.model = TabNetEncoder(self.input_dim, self.output_dim, n_d=self.output_dim, n_a=8, n_steps=3)
+        self.model = nn.Sequential(
+            nn.Linear(self.input_dim, 1),
+            nn.ReLU(),
+        )
         
     def forward(self, x):
         return self.model(x)

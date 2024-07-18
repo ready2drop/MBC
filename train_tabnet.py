@@ -63,9 +63,9 @@ parser.add_argument("--data_shape", default='3d', type=str, help="Input data sha
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
-parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
-parser.add_argument("--input_dim", default=18, type=int, help="num_features") # tabular features
-parser.add_argument("--fusion", default='intermediate', type=str, help="num_features") # 'early','intermediate', 'late'
+parser.add_argument("--output_dim", default=1, type=int, help="output dimension") # output dimension of each encoder
+parser.add_argument("--input_dim", default=17, type=int, help="num_features") # tabular features
+parser.add_argument("--fusion", default='late', type=str, help="num_features") # 'early','intermediate', 'late'
 
 args = parser.parse_args()
 args.log_dir = logdir(args.log_dir, args.mode, args.modality)
@@ -102,117 +102,176 @@ else:
 
 train_loader, valid_loader = getloader_bc(PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['mode'], PARAMS['modality'])
 
-image_encoder.eval()
-tabular_encoder.eval()
 
-X_train, X_val, y_train, y_val = [], [], [], []
+if PARAMS['fusion'] == 'late':
+    image_encoder.eval()
+    tabular_encoder.eval()
+    
+    train_preds, val_preds, train_targets, val_targets = [], [], [], []
 
-with torch.no_grad():
-    for images, features, targets, _ in tqdm(train_loader, desc="TrainData_Generation"):
-        images, features = images.to(device), features.to(device)
+    with torch.no_grad():
+        for images, features, targets, _ in tqdm(train_loader, desc="TrainData_Generation"):
+            images, features, targets = images.to(device), features.to(device), targets.to(device)
+            
+            image_predicts = image_encoder(images)
+            tabular_predicts = tabular_encoder(features)
+
+            # Apply sigmoid to get probabilities
+            image_probs = torch.sigmoid(image_predicts).squeeze()
+            tabular_probs = torch.sigmoid(tabular_predicts).squeeze()
+
+            # Aggregate predictions (average in this example)
+            combined_probs = (image_probs + tabular_probs) / 2
+            
+            train_preds.append(combined_probs.cpu().numpy())
+            train_targets.append(targets.cpu().numpy())
+
+    with torch.no_grad():
+        for images, features, targets, _ in tqdm(valid_loader, desc="ValidData_Generation"):
+            images, features, targets = images.to(device), features.to(device), targets.to(device)
+            
+            image_predicts = image_encoder(images)
+            tabular_predicts = tabular_encoder(features)
+
+            # Apply sigmoid to get probabilities
+            image_probs = torch.sigmoid(image_predicts).squeeze()
+            tabular_probs = torch.sigmoid(tabular_predicts).squeeze()
+
+            # Aggregate predictions (average in this example)
+            combined_probs = (image_probs + tabular_probs) / 2
+            
+            val_preds.append(combined_probs.cpu().numpy())
+            val_targets.append(targets.cpu().numpy())
+
+    # Convert lists to numpy arrays
+    train_preds = np.concatenate(train_preds, axis=0)
+    train_targets = np.concatenate(train_targets, axis=0)
+    val_preds = np.concatenate(val_preds, axis=0)
+    val_targets = np.concatenate(val_targets, axis=0)
+
+    # Convert probabilities to binary predictions
+    train_preds_binary = (train_preds > 0.5).astype(int)
+    val_preds_binary = (val_preds > 0.5).astype(int)
+
+    # Evaluate
+    train_accuracy = accuracy_score(train_targets, train_preds_binary)
+    val_accuracy = accuracy_score(val_targets, val_preds_binary)
+
+    print(f'Train Accuracy: {train_accuracy}')
+    print(f'Validation Accuracy: {val_accuracy}')
+    
+else:
+    image_encoder.eval()
+    tabular_encoder.eval()
+
+    X_train, X_val, y_train, y_val = [], [], [], []
+
+    with torch.no_grad():
+        for images, features, targets, _ in tqdm(train_loader, desc="TrainData_Generation"):
+            images, features = images.to(device), features.to(device)
+            
+
+            image_features = image_encoder(images)
+            tabular_features = tabular_encoder(features)
+
+            combined = torch.cat((image_features, tabular_features), dim=1)
+            X_train.append(combined.cpu().numpy())
+            y_train.append(targets.cpu().numpy())
+
+    with torch.no_grad():
+        for images, features, targets, _ in tqdm(valid_loader, desc="ValidData_Generation"):
+            images, features = images.to(device), features.to(device)
+            
+
+            image_features = image_encoder(images)
+            tabular_features = tabular_encoder(features)
+
+            combined = torch.cat((image_features, tabular_features), dim=1)
+            X_val.append(combined.cpu().numpy())
+            y_val.append(targets.cpu().numpy())
+
+    # Convert combined features and targets to numpy arrays
+    X_train = np.vstack(X_train)
+    y_train = np.hstack(y_train)
+    X_val = np.vstack(X_val)
+    y_val = np.hstack(y_val)
+
+    print('X_train shape : ', X_train.shape, 'y_train shape : ', y_train.shape, 'X_test shape : ', X_val.shape, 'y_test shape : ', y_val.shape) 
+
+    # Train and evaluate models
+    def train_and_evaluate_model(model, X_train, y_train, X_val, y_val, model_name):
+        model.fit(X_train, y_train)
+        y_train_pred = model.predict_proba(X_train)[:, 1]
+        y_val_pred = model.predict_proba(X_val)[:, 1]
         
-
-        image_features = image_encoder(images)
-        tabular_features = tabular_encoder(features)
-
-        combined = torch.cat((image_features, tabular_features), dim=1)
-        X_train.append(combined.cpu().numpy())
-        y_train.append(targets.cpu().numpy())
-
-with torch.no_grad():
-    for images, features, targets, _ in tqdm(valid_loader, desc="ValidData_Generation"):
-        images, features = images.to(device), features.to(device)
+        train_auc = roc_auc_score(y_train, y_train_pred)
+        val_auc = roc_auc_score(y_val, y_val_pred)
         
-
-        image_features = image_encoder(images)
-        tabular_features = tabular_encoder(features)
-
-        combined = torch.cat((image_features, tabular_features), dim=1)
-        X_val.append(combined.cpu().numpy())
-        y_val.append(targets.cpu().numpy())
-
-# Convert combined features and targets to numpy arrays
-X_train = np.vstack(X_train)
-y_train = np.hstack(y_train)
-X_val = np.vstack(X_val)
-y_val = np.hstack(y_val)
-
-print('X_train shape : ', X_train.shape, 'y_train shape : ', y_train.shape, 'X_test shape : ', X_val.shape, 'y_test shape : ', y_val.shape) 
-
-# Train and evaluate models
-def train_and_evaluate_model(model, X_train, y_train, X_val, y_val, model_name):
-    model.fit(X_train, y_train)
-    y_train_pred = model.predict_proba(X_train)[:, 1]
-    y_val_pred = model.predict_proba(X_val)[:, 1]
-    
-    train_auc = roc_auc_score(y_train, y_train_pred)
-    val_auc = roc_auc_score(y_val, y_val_pred)
-    
-    train_acc = accuracy_score(y_train, (y_train_pred > 0.5).astype(int))
-    val_acc = accuracy_score(y_val, (y_val_pred > 0.5).astype(int))
-    
-    train_logloss = log_loss(y_train, y_train_pred)
-    val_logloss = log_loss(y_val, y_val_pred)
-    
-    print(f'{model_name} - Train AUC: {train_auc}, Val AUC: {val_auc}')
-    print(f'{model_name} - Train Accuracy: {train_acc}, Val Accuracy: {val_acc}')
-    print(f'{model_name} - Train LogLoss: {train_logloss}, Val LogLoss: {val_logloss}')
-    
-# XGBoost
-xgb_model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
-train_and_evaluate_model(xgb_model, X_train, y_train, X_val, y_val, 'XGBoost')
-with open(f"{PARAMS['log_dir']}/xgb_model.pkl", 'wb') as f:
-    pickle.dump(xgb_model,  f)  # Save the XGBoost model
-
-# LightGBM
-lgbm_model = LGBMClassifier(random_state=42)
-train_and_evaluate_model(lgbm_model, X_train, y_train, X_val, y_val, 'LightGBM')
-with open(f"{PARAMS['log_dir']}/lgbm_model.pkl", 'wb') as f:
-    pickle.dump(lgbm_model,  f)  # Save the XGBoost model
-
-# RandomForest
-rf_model = RandomForestClassifier(random_state=42)
-train_and_evaluate_model(rf_model, X_train, y_train, X_val, y_val, 'RandomForest')
-with open(f"{PARAMS['log_dir']}/rf_model.pkl", 'wb') as f:
-    pickle.dump(rf_model,  f)  # Save the XGBoost model
-
-# Set tabnet_params
-tabnet_params = {"cat_emb_dim":2,
-            "optimizer_fn":torch.optim.Adam,
-            "optimizer_params":dict(lr=2e-2),
-            "scheduler_params":{"step_size":50, # how to use learning rate scheduler
-                            "gamma":0.9},
-            "scheduler_fn":torch.optim.lr_scheduler.StepLR,
-            "mask_type":'sparsemax', # "entmax"
-        }
-
-# Adjust tabnet_params to include combined_dim
-tabnet_params['input_dim'] = combined_dim
-tabnet_params['output_dim'] = PARAMS['num_classes']
-
-# Load pretrained model
-# loaded_pretrain = TabNetPretrainer()
-# loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
-# print('All weights are loaded!')    
-
-tabnet_clf = TabNetClassifier(**tabnet_params
-                      )
+        train_acc = accuracy_score(y_train, (y_train_pred > 0.5).astype(int))
+        val_acc = accuracy_score(y_val, (y_val_pred > 0.5).astype(int))
         
-tabnet_clf.fit(
-    X_train, y_train,
-    eval_set=[(X_train, y_train),(X_val, y_val)],
-    eval_name=['train', 'valid'],
-    eval_metric=['auc', 'accuracy', 'balanced_accuracy', 'logloss'],
-    max_epochs=1000,
-    patience=50,
-    batch_size=1024, virtual_batch_size=128,
-    num_workers=0,
-    drop_last=False,
-    # from_unsupervised=loaded_pretrain
-) 
+        train_logloss = log_loss(y_train, y_train_pred)
+        val_logloss = log_loss(y_val, y_val_pred)
+        
+        print(f'{model_name} - Train AUC: {train_auc}, Val AUC: {val_auc}')
+        print(f'{model_name} - Train Accuracy: {train_acc}, Val Accuracy: {val_acc}')
+        print(f'{model_name} - Train LogLoss: {train_logloss}, Val LogLoss: {val_logloss}')
+        
+    # XGBoost
+    xgb_model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
+    train_and_evaluate_model(xgb_model, X_train, y_train, X_val, y_val, 'XGBoost')
+    with open(f"{PARAMS['log_dir']}/xgb_model.pkl", 'wb') as f:
+        pickle.dump(xgb_model,  f)  # Save the XGBoost model
 
-# save tabnet model
-saving_path_name = f"{PARAMS['log_dir']}/tabnet_{PARAMS['output_dim']}"
-saved_filepath = tabnet_clf.save_model(saving_path_name)
+    # LightGBM
+    lgbm_model = LGBMClassifier(random_state=42,verbose_eval = -1)
+    train_and_evaluate_model(lgbm_model, X_train, y_train, X_val, y_val, 'LightGBM')
+    with open(f"{PARAMS['log_dir']}/lgbm_model.pkl", 'wb') as f:
+        pickle.dump(lgbm_model,  f)  # Save the XGBoost model
+
+    # RandomForest
+    rf_model = RandomForestClassifier(random_state=42)
+    train_and_evaluate_model(rf_model, X_train, y_train, X_val, y_val, 'RandomForest')
+    with open(f"{PARAMS['log_dir']}/rf_model.pkl", 'wb') as f:
+        pickle.dump(rf_model,  f)  # Save the XGBoost model
+
+    # Set tabnet_params
+    tabnet_params = {"cat_emb_dim":2,
+                "optimizer_fn":torch.optim.Adam,
+                "optimizer_params":dict(lr=2e-2),
+                "scheduler_params":{"step_size":50, # how to use learning rate scheduler
+                                "gamma":0.9},
+                "scheduler_fn":torch.optim.lr_scheduler.StepLR,
+                "mask_type":'sparsemax', # "entmax"
+            }
+
+    # Adjust tabnet_params to include combined_dim
+    tabnet_params['input_dim'] = combined_dim
+    tabnet_params['output_dim'] = PARAMS['num_classes']
+
+    # Load pretrained model
+    # loaded_pretrain = TabNetPretrainer()
+    # loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
+    # print('All weights are loaded!')    
+
+    tabnet_clf = TabNetClassifier(**tabnet_params
+                        )
+            
+    tabnet_clf.fit(
+        X_train, y_train,
+        eval_set=[(X_train, y_train),(X_val, y_val)],
+        eval_name=['train', 'valid'],
+        eval_metric=['auc', 'accuracy', 'balanced_accuracy', 'logloss'],
+        max_epochs=1000,
+        patience=50,
+        batch_size=1024, virtual_batch_size=128,
+        num_workers=0,
+        drop_last=False,
+        # from_unsupervised=loaded_pretrain
+    ) 
+
+    # save tabnet model
+    saving_path_name = f"{PARAMS['log_dir']}/tabnet_{PARAMS['input_dim']}"
+    saved_filepath = tabnet_clf.save_model(saving_path_name)
 
 

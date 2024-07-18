@@ -30,14 +30,14 @@ def load_data(data_dir : str,
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     
     #Column select
-    columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     # columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
     #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -49,14 +49,14 @@ def load_data(data_dir : str,
         return row.iloc[0, 1:].tolist() if not row.empty else None
     
     # Rename column 
-    data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
     # data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
     #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
+       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
 
 
     for image_path in image_list:
