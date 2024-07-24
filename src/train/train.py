@@ -1,22 +1,24 @@
-import torch
-import torch.nn as nn
-from torch.nn.parallel import DataParallel
-
-from dataset.bc_dataloader import getloader_bc
-from model.mbc import MultiModalbileductClassifier_2d, MultiModalbileductClassifier_3d
-from model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
-
-from utils.loss import get_optimizer_loss_scheduler
-from utils.util import logdir, get_model_parameters
-
-from timeit import default_timer as timer
+import sys
+import os
 from tqdm import tqdm
 import numpy as np
 import random
 import wandb
 import argparse
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+import torch
+from torch.nn.parallel import DataParallel
+
+from src.dataset.bc_dataloader import getloader_bc
+from src.model.mbc import MultiModalbileductClassifier_2d, MultiModalbileductClassifier_3d
+from src.model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
+
+from src.utils.loss import get_optimizer_loss_scheduler
+from src.utils.util import logdir, get_model_parameters
+
 
 def seed_everything(seed):
     torch.manual_seed(seed)

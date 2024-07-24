@@ -1,27 +1,25 @@
-import torch
-import torch.nn as nn
-from torch.nn.parallel import DataParallel
-
-from dataset.bc_dataloader import getloader_bc
-from model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
-from model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
-from pytorch_tabnet.tab_model import TabNetClassifier
-
-from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
-
-from utils.loss import get_optimizer_loss_scheduler
-from utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
-
-from timeit import default_timer as timer
+import sys
+import os
 from tqdm import tqdm
 import numpy as np
 import random
 import wandb
 import argparse
-import pickle
+import pickle  # For saving models
 import warnings
+warnings.filterwarnings("ignore")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-warnings.filterwarnings('ignore')
+import torch
+
+from src.dataset.bc_dataloader import getloader_bc
+from src.model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
+from src.model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
+
+from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
+
+from pytorch_tabnet.tab_model import TabNetClassifier
+from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
 
 def seed_everything(seed):
     torch.manual_seed(seed)
