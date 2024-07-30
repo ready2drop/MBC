@@ -1,11 +1,15 @@
 import pandas as pd
 import os
 import torch
+import warnings
+warnings.filterwarnings("ignore")
+
 from torch.utils.data import Dataset
 
 from monai import transforms
 from monai.data import DataLoader
 from .bc_feature_engineering import load_data
+
 
 class CustomDataset(Dataset):
     def __init__(self, dataframe, modality, mode):
@@ -77,7 +81,6 @@ class CustomDataset(Dataset):
         return len(self.dataframe)
 
     def __getitem__(self, idx):
-                        
         if self.modality == 'mm':
             # Apply transformations based on the mode
             img_name = self.dataframe.iloc[idx, 0] # 0 is the index of image_path in train_data
@@ -93,6 +96,8 @@ class CustomDataset(Dataset):
             if self.mode == 'train':
                 image = self.train_transform(img_name)
             elif self.mode == 'val':
+                image = self.val_transform(img_name)            
+            elif self.mode == 'pretrain':
                 image = self.val_transform(img_name)            
             else:
                 image = self.test_transform(img_name)
@@ -163,6 +168,16 @@ def getloader_bc(
         test_dataset = CustomDataset(test_data, modality, mode='test')
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return test_loader
+    elif mode == 'pretrain':
+        pretrain_data = load_data(data_dir, excel_file, mode, modality)
+        pretrain_dataset = CustomDataset(pretrain_data, modality, mode='pretrain')
+        pretrain_loader = DataLoader(pretrain_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
+        return pretrain_loader
+    elif mode == 'eval':
+        eval_data = load_data(data_dir, excel_file, mode, modality)
+        eval_dataset = CustomDataset(eval_data, modality, mode='eval')
+        eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
+        return eval_loader
     else:
         raise ValueError("Choose mode!")
 

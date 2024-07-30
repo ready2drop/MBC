@@ -3,16 +3,22 @@ import os
 import argparse
 import warnings
 warnings.filterwarnings('ignore')
+
 def rename_columns(df):
     df.columns = df.columns.str.upper()
     df.rename(columns={
         '환자번호': 'ID',
         '성별': 'SEX',
         '생년월일': 'BIRTH_DATE',
-        '검체명': 'SAMPLE',
+        '나이': 'AGE',
+        # '검체명': 'SAMPLE',
         '항목명': 'ITEM',
+        # '검사항목명': 'ITEM',
         '검사결과': 'TEST_RESULT',
+        # '검사결과-수치값': 'TEST_RESULT',
+        # '검사시행일': 'APPOINTMENT_DATE',
         '접수일시': 'APPOINTMENT_DATE',
+        # '입력일시': 'MEASUREMENT_DATE',
         '측정일시': 'MEASUREMENT_DATE',
     }, inplace=True)
     
@@ -31,31 +37,39 @@ def calculate_age(df):
 
 
 def get_first_test(df):
-    df = df.dropna(subset=['SAMPLE', 'ITEM','TEST_RESULT'])
+    df = df.dropna(subset=['ITEM','TEST_RESULT'])
+    # df = df.dropna(subset=['SAMPLE', 'ITEM','TEST_RESULT'])
     df['APPOINTMENT_DATE'] = pd.to_datetime(df['APPOINTMENT_DATE'])
-    idx = df.groupby(['ID', 'SAMPLE', 'ITEM'])['APPOINTMENT_DATE'].idxmin()
+    idx = df.groupby(['ID', 'ITEM'])['APPOINTMENT_DATE'].idxmin()
+    # idx = df.groupby(['ID', 'SAMPLE', 'ITEM'])['APPOINTMENT_DATE'].idxmin()
     df = df.loc[idx].reset_index(drop=True)
     
-    df['test_type'] = df['SAMPLE'] + '_' + df['ITEM']
+    # df['test_type'] = df['SAMPLE'] + '_' + df['ITEM']
+    df['test_type'] = df['ITEM']
     pivot_df = df.pivot_table(index='ID', columns='test_type', values='TEST_RESULT', aggfunc='first')
     pivot_df.reset_index(inplace=True)
     df = df.merge(pivot_df, on='ID')
-    df = df.drop_duplicates('ID')[['ID','FIRST_VISIT_DATE','VISIBLE_STONE_CT', 'REAL_STONE','SEX','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP(Alkaline phosphatase, 응급)',
-        'SST_ALT(GPT, 응급)', 'SST_AST(GOT, 응급)', 'SST_CRP(응급)']]
+    df = df.drop_duplicates('ID')[['ID','FIRST_VISIT_DATE','VISIBLE_STONE_CT', 'REAL_STONE','SEX','Hb', 'PLT', 'WBC', 'ALP(Alkaline phosphatase, 응급)',
+        'ALT(GPT, 응급)', 'AST(GOT, 응급)', 'CRP(응급)', 'Total Bilirubin(응급)']]
+
     df.rename(columns={
-        'SST_ALP(Alkaline phosphatase, 응급)': 'SST_ALP',
-        'SST_ALT(GPT, 응급)': 'SST_ALT',
-        'SST_AST(GOT, 응급)': 'SST_AST',
-        'SST_CRP(응급)': 'SST_CRP',
+        'ALP(Alkaline phosphatase, 응급)': 'ALP',
+        'ALT(GPT, 응급)': 'ALT',
+        'AST(GOT, 응급)': 'AST',
+        'CRP(응급)': 'CRP',
+        'Total Bilirubin(응급)': 'BILIRUBIN',
     }, inplace=True)
     df.sort_values(by='ID')
     
     return df
 
 def get_edta_sst(df):
+    # df = df[
+    #     ((df['SAMPLE'].str.contains('EDTA')) & (df['ITEM'].isin(('WBC', 'Hb', 'PLT')))) |
+    #     ((df['SAMPLE'].str.contains('SST')) & (df['ITEM'].isin(('ALP(Alkaline phosphatase, 응급)', 'ALT(GPT, 응급)', 'AST(GOT, 응급)', 'CRP(응급)'))))
+    # ]
     df = df[
-        ((df['SAMPLE'].str.contains('EDTA')) & (df['ITEM'].isin(('WBC', 'Hb', 'PLT')))) |
-        ((df['SAMPLE'].str.contains('SST')) & (df['ITEM'].isin(('ALP(Alkaline phosphatase, 응급)', 'ALT(GPT, 응급)', 'AST(GOT, 응급)', 'CRP(응급)'))))
+        df['ITEM'].isin(('WBC', 'Hb', 'PLT','ALP(Alkaline phosphatase, 응급)', 'ALT(GPT, 응급)', 'AST(GOT, 응급)', 'CRP(응급)', 'Total Bilirubin(응급)'))
     ]
 
     return df
@@ -89,7 +103,8 @@ def get_first_measurements(df):
 
 
 def merge_with_filtered_data(df, filtered_measurement):
-    df_filtered = df[['ID', 'FIRST_VISIT_DATE', 'VISIBLE_STONE_CT', 'REAL_STONE', 'ANATOMY', 'PANCREATITIS', 'BIRTH_DATE', 'SEX']]
+    # df_filtered = df[['ID', 'FIRST_VISIT_DATE', 'SEX', 'AGE']]
+    df_filtered = df[['ID', 'FIRST_VISIT_DATE', 'VISIBLE_STONE_CT', 'REAL_STONE', 'PANCREATITIS', 'SEX', 'AGE']]
     df_filtered = df_filtered.sort_values('FIRST_VISIT_DATE').drop_duplicates(subset=['ID'], keep='first')
     df = pd.merge(df_filtered, filtered_measurement, on='ID', how='inner')
     
@@ -106,7 +121,7 @@ def compare_his_emr(vital_his, vital_emr):
     different_dates_df = merged_df[merged_df['FIRST_VISIT_DATE_df1'] != merged_df['FIRST_VISIT_DATE_df2']]
 
     if not different_dates_df.empty:
-        print("ID with different FIRST_VISIT_DATE:")
+        print("ID with different DATA_START:")
         print(different_dates_df[['ID', 'FIRST_VISIT_DATE_df1', 'FIRST_VISIT_DATE_df2']])
     else:
         print("No IDs with different FIRST_VISIT_DATE found.")
@@ -126,24 +141,26 @@ def remove_unit(value):
     return value
 
 def vital_preprocessing(his_df, emr_df):
-        his_df = rename_columns(his_df)
-        emr_df = rename_columns(emr_df)
+        rename_columns(his_df)
+        rename_columns(emr_df)
+        
+        his_df = calculate_age(his_df)
+        emr_df = calculate_age(emr_df)
         
         filtered_measurement_his = get_first_measurements(his_df)
         filtered_measurement_emr = get_first_measurements(emr_df)
         
+        
         vital_his_df = merge_with_filtered_data(his_df, filtered_measurement_his)
         vital_emr_df = merge_with_filtered_data(emr_df, filtered_measurement_emr)
-        
-        vital_his_df = calculate_age(vital_his_df)
-        vital_emr_df = calculate_age(vital_emr_df)
+
         
         compare_his_emr(vital_his_df, vital_emr_df)
         
         vital_df = pd.concat([vital_his_df, vital_emr_df]).drop_duplicates()
         vital_df = vital_df.sort_values(by='ID')
-        # vital_df =  vital_df[['ID','VISIBLE_STONE_CT','REAL_STONE','ANATOMY','PANCREATITIS','SEX','FIRST_SBP','FIRST_DBP','FIRST_HR','FIRST_RR','FIRST_BT','AGE']]
-        vital_df =  vital_df[['ID','VISIBLE_STONE_CT','REAL_STONE','PANCREATITIS','SEX','FIRST_SBP','FIRST_DBP','FIRST_HR','FIRST_RR','FIRST_BT','AGE']]
+        vital_df =  vital_df[['ID','SEX','FIRST_SBP','FIRST_DBP','FIRST_HR','FIRST_RR','FIRST_BT','AGE']]
+        # vital_df =  vital_df[['ID','SEX','FIRST_SBP','FIRST_DBP','FIRST_HR','FIRST_RR','FIRST_BT','AGE']]
         
         return vital_df
     
@@ -159,7 +176,9 @@ def blood_preprocessing(his_df, emr_df):
         combined_df = pd.concat([result_his_df, result_emr_df]).drop_duplicates()
         filtered_df = get_first_test(combined_df)
         blood_df = filtered_df.applymap(remove_unit)
-        blood_df = blood_df[['ID','EDTA_Hb','EDTA_PLT','EDTA_WBC','SST_ALP','SST_ALT','SST_AST','SST_CRP']]
+        print(blood_df.columns)
+        # blood_df = blood_df[['ID','EDTA_Hb','EDTA_PLT','EDTA_WBC','SST_ALP','SST_ALT','SST_AST','SST_CRP']]
+        blood_df = blood_df[['ID','Hb','PLT','WBC','ALP','ALT','AST','CRP','BILIRUBIN']]
         
         return blood_df
     
@@ -181,7 +200,7 @@ def main(data_path, vital_blood_excel, ct_excel, output):
     exam_his = pd.read_excel(os.path.join(data_path,vital_blood_excel),sheet_name=2, engine='openpyxl')
     exam_emr = pd.read_excel(os.path.join(data_path,vital_blood_excel),sheet_name=3, engine='openpyxl')
     ct = pd.read_excel(os.path.join(data_path,ct_excel), engine='openpyxl')
-    
+
     # Vital Sign
     print('-------------------Vital Sign preprocessing-------------------')
     vital_df = vital_preprocessing(vital_his, vital_emr)
@@ -196,7 +215,7 @@ def main(data_path, vital_blood_excel, ct_excel, output):
     ct = ct[ct['INCLUSION']==1]
     ct.drop_duplicates(inplace=True)
     ct = ct.sort_values(by='ID')
-    ct = ct[['ID','DUCT_DILIATATION_10MM','DUCT_DILIATATION_8MM']]
+    ct = ct[['ID','VISIBLE_STONE_CT','REAL_STONE','PANCREATITIS','DUCT_DILIATATION_10MM','DUCT_DILIATATION_8MM']]
     
     # Merge 
     print('-------------------Merge-------------------')
@@ -213,10 +232,10 @@ def main(data_path, vital_blood_excel, ct_excel, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get json")
-    parser.add_argument("--data_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti/', type=str, help="data directory")
+    parser.add_argument("--data_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part5_nifti/', type=str, help="data directory")
     parser.add_argument("--vital_blood_excel", default='20240502_소화기내과 연구용 자료신청_활력징후와혈액검사_부가설명포함.xlsx', type=str, help="vital blood excel name")
     parser.add_argument("--ct_excel", default='bileduct_data_20240629b.xlsx', type=str, help="ct excel name")
-    parser.add_argument("--output", default='dumc_0702.csv', type=str, help="output name")
+    parser.add_argument("--output", default='dumc_07301.csv', type=str, help="output name")
     
     args = parser.parse_args()
     

@@ -1,10 +1,11 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
 from sklearn.utils import resample
 from glob import glob
 import os
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def load_data(data_dir : str, 
@@ -30,14 +31,14 @@ def load_data(data_dir : str,
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     
     #Column select
-    # columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-    #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
-    columns = ['patient_id', 'EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -49,14 +50,14 @@ def load_data(data_dir : str,
         return row.iloc[0, 1:].tolist() if not row.empty else None
     
     # Rename column 
-    # data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-    #    'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
-    data_dict = {key: [] for key in ['image_path','EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
 
 
     for image_path in image_list:
@@ -85,73 +86,48 @@ def load_data(data_dir : str,
         
     print("--------------Scaling--------------")
     if modality in ['mm', 'tabular']:
-        columns_to_scale = ['EDTA_Hb', 'EDTA_PLT', 'EDTA_WBC', 'SST_ALP', 'SST_ALT',
-       'SST_AST', 'SST_CRP', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+        columns_to_scale = ['Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT','AGE']
         scaler = MinMaxScaler()
         train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
 
-    print("--------------Class balance--------------")
-    # undersampling
-    majority_class = train_df[train_df['target'] == 1.0]
-    minority_class = train_df[train_df['target'] == 0.0]
+    if mode == 'train' or mode == 'test':
+        print("--------------Class balance--------------")
+        # undersampling
+        majority_class = train_df[train_df['target'] == 1.0]
+        minority_class = train_df[train_df['target'] == 0.0]
 
-    # Undersample the majority class to match the number of '1's in the minority class
-    undersampled_majority_class = resample(majority_class,
-                                        replace=False,
-                                        n_samples=len(minority_class),
-                                        random_state=42)
+        # Undersample the majority class to match the number of '1's in the minority class
+        undersampled_majority_class = resample(majority_class,
+                                            replace=False,
+                                            n_samples=len(minority_class),
+                                            random_state=42)
 
-    # Concatenate minority class and undersampled majority class
-    data = pd.concat([undersampled_majority_class, minority_class])
-    # data = train_df
-    print(data['target'].value_counts())
-    train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
-    valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
+        # Concatenate minority class and undersampled majority class
+        data = pd.concat([undersampled_majority_class, minority_class])
+        # data = train_df
+        print(data['target'].value_counts())
+        train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
+        valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
     
-    # if modality == 'mm':
-    #     ## oversampling
-    #     image_paths = train_df['image_path']
-    #     X = train_df.drop(['image_path','target'], axis=1)
-    #     y = train_df['target']
+        if mode == 'train':
+            print("Train set shape:", train_data.shape)
+            print("Validation set shape:", valid_data.shape)
+            return train_data, valid_data
 
-    #     # Apply SMOTE
-    #     smote = SMOTE(random_state=42)
-    #     X_res, y_res = smote.fit_resample(X, y)
-
-    #     # Combine the resampled features and target into a single DataFrame
-    #     train_df_resampled = pd.concat([X_res, y_res], axis=1)
-    #     num_samples_to_add = len(train_df_resampled) - len(image_paths)
-    #     repeated_image_paths = pd.concat([image_paths, image_paths.sample(num_samples_to_add, replace=True)]).reset_index(drop=True)
-
-    #     train_df_resampled.insert(0, 'image_path', repeated_image_paths)
-    #     print(train_df_resampled['target'].value_counts())
-
-    # print("--------------Scaling--------------")
-    # if modality == 'mm':
-    #     # MinMaxScaler 객체 생성
-    #     columns_to_scale = ['SBP', 'DBP', 'HR', 'RR', 'BT', 'AGE', 'blood_test']
-    #     scaler = MinMaxScaler()
-    #     train_df_resampled[columns_to_scale] = scaler.fit_transform(train_df_resampled[columns_to_scale])
-
-    #     # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
-    #     train_data, test_data = train_test_split(train_df_resampled, test_size=0.3, stratify=train_df_resampled['target'], random_state=123)
-    #     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
-    # else: 
-    #     # Splitting the test set into validation and test sets (70% train 20% validation, 10% test)
-    #     train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
-    #     valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
-
-
+        elif mode == 'test':
+            print("Test set shape:", test_data.shape)
+            return test_data
         
-    if mode == 'train':
-        print("Train set shape:", train_data.shape)
-        print("Validation set shape:", valid_data.shape)
-        return train_data, valid_data
-
-    elif mode == 'test':
-        print("Test set shape:", test_data.shape)
-        return test_data
+    elif mode == 'pretrain' or mode == 'eval':
+        pretrain_data, eval_data = train_test_split(train_df, test_size=0.1, random_state=123)
+        if mode == 'pretrain':
+            print("Pretrain set shape:", pretrain_data.shape)
+            return pretrain_data
+        elif mode == 'eval':
+            print("Validation set shape:", eval_data.shape)
+            return eval_data
     
     else:
         raise ValueError("Choose mode!")

@@ -1,7 +1,9 @@
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import *
 from .lr_scheduler import LinearWarmupCosineAnnealingLR
+
 
 
 def get_optimizer_loss_scheduler(PARAMS, model):
@@ -9,8 +11,7 @@ def get_optimizer_loss_scheduler(PARAMS, model):
     if PARAMS['loss_function'] == 'CE':
         loss = nn.CrossEntropyLoss()
     elif PARAMS['loss_function'] == 'BCE':
-        loss = nn.BCEWithLogitsLoss()
-    # Add more conditions for other loss functions as needed
+        loss = nn.BCEWithLogitsLoss()     
     else:
         raise ValueError(f"Unsupported loss function: {PARAMS['loss_function']}")
 

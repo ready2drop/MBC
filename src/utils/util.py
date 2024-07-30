@@ -50,6 +50,10 @@ def get_model_parameters(dict):
         dict['num_features'] = 192
         pass
     
+    elif dict['model_architecture'] == 'ViT':
+        dict['model_parameters'] = {'img_size' : (96, 96, 96), 'in_channels' : 1, 'patch_size' : (16, 16, 16), 'hidden_size' : 768, 'num_layers' : 12, 'num_heads' : 12, 'mlp_dim' : 3072, 'dropout_rate' : 0.1}
+        dict['num_features'] = 768
+        pass
    
     return dict
 
