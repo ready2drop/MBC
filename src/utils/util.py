@@ -5,7 +5,8 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
-import scipy.ndimage as ndimage
+from sklearn.manifold import TSNE
+import seaborn as sns
 
 def logdir(str, mode, modality):
     seoul_timezone = timezone('Asia/Seoul')
@@ -82,3 +83,14 @@ def save_confusion_matrix_roc_curve(targets_all, predicted_all, log_dir, model_n
         plt.legend(loc="lower right")
         plt.savefig(os.path.join(log_dir, f'{model_name}_roc_curve.png'))    
         
+def plot_tsne(features, labels, epoch, log_dir):
+    tsne = TSNE(n_components=2, random_state=42)
+    tsne_features = tsne.fit_transform(features)
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(x=tsne_features[:, 0], y=tsne_features[:, 1], hue=labels, palette='viridis')
+    plt.title(f't-SNE of Combined Features at Epoch {epoch}')
+    plt.xlabel('t-SNE Feature 1')
+    plt.ylabel('t-SNE Feature 2')
+    plt.legend()
+    plt.savefig(os.path.join(log_dir,f'tsne_epoch_{epoch}.png'))
+    plt.show()        

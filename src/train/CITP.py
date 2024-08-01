@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 from src.model.CITP_model import CITPModel
 from src.dataset.bc_dataloader import getloader_bc
-from src.utils.util import logdir, get_model_parameters
+from src.utils.util import logdir, get_model_parameters, plot_tsne
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -47,27 +47,43 @@ def main(dict, device):
 
     # Training loop
     for epoch in range(dict['epochs']):  # Adjust the number of epochs as needed
-        for images, features, _, _ in data_loader:
+        train_loss, total_batches = 0.0, 0
+        all_features, all_labels = [], []
+        
+        model.train()
+        for images, features, labels, _ in data_loader:
             optimizer.zero_grad()
-            
             image_features, tabular_features = model(images.to(device), features.to(device))
-            
             # Contrastive loss
             loss = model.module.compute_contrastive_loss(image_features, tabular_features)
             loss.backward()
             optimizer.step()
             
+            train_loss += loss.item()
+            total_batches += 1
             print(f'Epoch {epoch}, Loss: {loss.item()}')
+            # Collect features for t-SNE
+            combined_features = (image_features + tabular_features).detach().cpu().numpy()
+            all_features.append(combined_features)
+            all_labels.append(labels.detach().cpu().numpy())
             
             # Check if the current loss is the best (lowest) so far
             if loss.item() < best_loss:
                 best_loss = loss.item()
                 print("Model Saved ! Current Best loss: {} ".format(best_loss))
-                torch.save(model.module.image_encoder.state_dict(), f"{dict['log_dir']}/CITP_Image_encoder.pth")
-                torch.save(model.module.tabular_encoder.state_dict(), f"{dict['log_dir']}/CITP_Tabular_encoder.pth")
-
-
-    
+                torch.save(model.module.image_encoder.state_dict(), f"{dict['log_dir']}/CITP_Image_encoder_{dict['hidden_dim']}.pth")
+                torch.save(model.module.tabular_encoder.state_dict(), f"{dict['log_dir']}/CITP_Tabular_encoder_{dict['hidden_dim']}.pth")
+        
+        # Calculate average loss for the epoch
+        avg_train_loss = train_loss / total_batches
+        if dict.get('use_wandb', False):
+            wandb.log({"pretrain_loss": avg_train_loss}, step=epoch+1)
+            
+        # t-SNE visualization every 100 epochs
+        if epoch % 100 == 0:
+            all_features = np.concatenate(all_features, axis=0)
+            all_labels = np.concatenate(all_labels, axis=0)
+            plot_tsne(all_features, all_labels, epoch, dict['log_dir'])
     
     
     
@@ -90,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
     parser.add_argument("--mode", default='pretrain', type=str, help="mode") # 'train', 'test'
     parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
-    parser.add_argument("--hidden_dim", default=128, type=int, help="projection dimension") 
+    parser.add_argument("--hidden_dim", default=256, type=int, help="projection dimension") 
     parser.add_argument("--input_dim", default=19, type=int, help="tabular feature num") 
 
     args = parser.parse_args()
@@ -100,6 +116,6 @@ if __name__ == "__main__":
     PARAMS = get_model_parameters(PARAMS)
 
     if PARAMS['use_wandb'] == True:
-        wandb.init(project="Multimodal-Bileductstone-Classifier", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['data_shape']}", config=PARAMS)
+        wandb.init(project="Multimodal-Bileductstone-Classifier-CITP pretrain", save_code=True, name = f"{PARAMS['model_architecture']},{PARAMS['modality']}, {PARAMS['hidden_dim']}", config=PARAMS)
 
     main(PARAMS, device)
