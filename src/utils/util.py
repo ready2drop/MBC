@@ -55,6 +55,11 @@ def get_model_parameters(dict):
         dict['model_parameters'] = {'img_size' : (96, 96, 96), 'in_channels' : 1, 'patch_size' : (16, 16, 16), 'hidden_size' : 768, 'num_layers' : 12, 'num_heads' : 12, 'mlp_dim' : 3072, 'dropout_rate' : 0.1}
         dict['num_features'] = 768
         pass
+    
+    elif dict['model_architecture'] == 'ResNet':
+        dict['model_parameters'] = {'block' : 'bottleneck', 'layers' : (3, 4, 6, 3), 'block_inplanes' : [64, 128, 256, 512], 'spatial_dims' : 3, 'n_input_channels' : 1, 'no_max_pool' : False, 'shortcut_type' : 'B', 'widen_factor' : 1.0}
+        dict['num_features'] = 400
+        pass
    
     return dict
 

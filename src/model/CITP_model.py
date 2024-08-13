@@ -16,12 +16,17 @@ class ContrastiveImageEncoder(nn.Module):
         
         # Load pre-trained backbone model
         self.model = getattr(nets, self.model_architecture)(**self.model_parameters)
-
         self.fc = nn.Linear(self.num_features, self.hidden_dim)
-        
+
+            
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features, _ = self.model(x)  # torch.Size([batch, 216, 768])
-        features = self.fc(features.mean(dim=1))  # torch.Size([batch, hidden_dim])
+        if self.model_architecture.startswith('ResNet'):
+            # ResNet outputs feature maps
+            features = self.model(x)  # Shape: [batch, num_features, H, W]
+            features = self.fc(features)  # Flatten to [batch, num_features]
+        else:
+            features, _ = self.model(x)  # torch.Size([batch, 216, 768])
+            features = self.fc(features.mean(dim=1))  # torch.Size([batch, hidden_dim])
         
         return features
 
@@ -67,3 +72,17 @@ class CITPModel(nn.Module):
         
         loss = nn.CrossEntropyLoss()(similarity_matrix, labels)
         return loss
+
+class CITPModel_classifier(nn.Module):
+    def __init__(self, image_encoder, tabular_encoder, hidden_dim):
+        super(CITPModel_classifier, self).__init__()
+        self.image_encoder = image_encoder
+        self.tabular_encoder = tabular_encoder
+        self.fc = nn.Linear(hidden_dim * 2, 1)  # Assuming hidden_dim is the size of the encoded features
+
+    def forward(self, image, tabular):
+        image_features = self.image_encoder(image)
+        tabular_features = self.tabular_encoder(tabular)
+        combined_features = torch.cat((image_features, tabular_features), dim=1)
+        output = self.fc(combined_features)
+        return torch.sigmoid(output)    
