@@ -15,15 +15,7 @@ from src.model.CITP_model import CITPModel, CITPModel_classifier
 from src.dataset.bc_dataloader import getloader_bc
 from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
 
-def seed_everything(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed) 
-    torch.cuda.manual_seed_all(seed)  
-    torch.backends.cudnn.deterministic = True 
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed) 
-    random.seed(seed) 
-seed_everything(42)
+
 
 def load_pretrained_encoders(dict, device):
     model = CITPModel(dict).to(device)
@@ -83,10 +75,10 @@ if __name__ == "__main__":
     parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--model_architecture", default="ViT", type=str, help="Model architecture")
-    parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part5_nifti_crop/', type=str, help="Directory of dataset")
+    parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/Part5_nifti_crop/', type=str, help="Directory of dataset")
     parser.add_argument("--excel_file", default='dumc_0730a.csv', type=str, help="tabular data")
     parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
-    parser.add_argument("--pretrained_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-08-01-13-57-pretrain-mm', type=str, help="pretrained weight directory")
+    parser.add_argument("--pretrained_dir", default='/home/rkdtjdals97/MBC/logs/2024-08-01-13-57-pretrain-mm', type=str, help="pretrained weight directory")
     parser.add_argument("--mode", default='eval', type=str, help="mode") # 'train', 'test'
     parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
     parser.add_argument("--hidden_dim", default=256, type=int, help="projection dimension") 

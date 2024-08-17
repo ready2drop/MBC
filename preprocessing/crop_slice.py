@@ -76,19 +76,21 @@ def extract_and_crop_slices(image_path, label_path, start_label, end_label, outp
   # 추출 슬라이스 확인
   print(f"추출 슬라이스 범위: {start_slice} ~ {end_slice}")
 
-  # Find the bounding box coordinates of the liver label
-  bbox = find_liver_bounding_box(label_data, end_label)
-  if bbox is None:
-      return None, None
+  # # Find the bounding box coordinates of the liver label
+  # bbox = find_liver_bounding_box(label_data, end_label)
+  # if bbox is None:
+  #     return None, None
 
-  start_x, end_x, start_y, end_y = bbox
-  # Print bounding box coordinates
-  print(f"Start X: {start_x}, End X: {end_x}")
-  print(f"Start Y: {start_y}, End Y: {end_y}")
-  print(f"Strat Z: {start_slice}, End Z: {end_slice}")
+  # start_x, end_x, start_y, end_y = bbox
+  # # Print bounding box coordinates
+  # print(f"Start X: {start_x}, End X: {end_x}")
+  # print(f"Start Y: {start_y}, End Y: {end_y}")
+  # print(f"Strat Z: {start_slice}, End Z: {end_slice}")
 
+  # # Perform extraction based on bounding box coordinates
+  # extracted_slices = image_data[start_x:300, start_y:end_y, start_slice-5:end_slice+2]
   # Perform extraction based on bounding box coordinates
-  extracted_slices = image_data[start_x:300, start_y:end_y, start_slice-5:end_slice+2]
+  extracted_slices = image_data[..., start_slice-5:end_slice+2]
 
   # 첫 번째 이미지로부터 정보 추출
   header, affine = nib.load(image_path).header, nib.load(image_path).affine
