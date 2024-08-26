@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-from .tab_network import TabNetEncoder
 
     
 class TabularEncoder_earlyfusion(nn.Module):

@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning_rate", default=1e-4, type=float, help="Learning rate")
     parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
     parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
-    parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
+    parser.add_argument("--num_gpus", default=5, type=int, help="Number of GPUs")
     parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--model_architecture", default="ViT", type=str, help="Model architecture")

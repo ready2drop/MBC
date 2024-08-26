@@ -104,7 +104,7 @@ class Tester:
                 
                     
         print(f"Test: Epoch Loss: {test_loss}, Epoch Accuracy: {test_acc}")
-        save_confusion_matrix_roc_curve(targets_all, predicted_all, self.log_dir)     
+        save_confusion_matrix_roc_curve(targets_all, predicted_all, self.log_dir, self.modality)     
         
         return test_loss, test_acc
 
@@ -124,13 +124,13 @@ parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum fo
 parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
 parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
 parser.add_argument("--batch_size", default=1, type=int, help="Batch size")
-parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
+parser.add_argument("--num_gpus", default=5, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
-parser.add_argument("--pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--image_pretrain_path", default='/home/rkdtjdals97/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
 parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-05-21-15-53-train/best_epoch_weights.pth', type=str, help="finetuned weight path")
 parser.add_argument("--excel_file", default='combined.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'

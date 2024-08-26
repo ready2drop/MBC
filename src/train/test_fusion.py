@@ -46,26 +46,26 @@ parser.add_argument("--optimizer", default='adamw', type=str, help="Type of Opti
 parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
 parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
 parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
-parser.add_argument("--batch_size", default=4, type=int, help="Batch size")
-parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
+parser.add_argument("--batch_size", default=15, type=int, help="Batch size")
+parser.add_argument("--num_gpus", default=5, type=int, help="Number of GPUs")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
-parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part4_nifti_crop_ver2/', type=str, help="Directory of dataset")
-parser.add_argument("--image_pretrain_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--tabnet_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-18-11-23-train-mm/tabnet_17.zip', type=str, help="finetuned weight path")
-parser.add_argument("--xgboost_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-18-11-23-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--lightgbm_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-18-11-23-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--rf_ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-07-18-11-23-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--excel_file", default='dumc_0702.csv', type=str, help="tabular data")
+parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/Part5_nifti_crop/', type=str, help="Directory of dataset")
+parser.add_argument("--image_pretrain_path", default='/home/rkdtjdals97/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--tabnet_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/tabnet_19.zip', type=str, help="finetuned weight path")
+parser.add_argument("--xgboost_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--lightgbm_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--rf_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--excel_file", default='dumc_0730a.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
-parser.add_argument("--output_dim", default=1, type=int, help="output dimension") # output dimension of each encoder
-parser.add_argument("--input_dim", default=17, type=int, help="num_features") # tabular features
-parser.add_argument("--fusion", default='late', type=str, help="num_features") # 'early','intermediate', 'late'
+parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
+parser.add_argument("--input_dim", default=19, type=int, help="num_features") # tabular features
+parser.add_argument("--fusion", default='intermediate', type=str, help="num_features") # 'early','intermediate', 'late'
 
 args = parser.parse_args()
 args.log_dir = logdir(args.log_dir, args.mode, args.modality)

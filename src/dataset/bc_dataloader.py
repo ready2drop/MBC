@@ -44,7 +44,7 @@ class CustomDataset(Dataset):
         
         self.val_transform = transforms.Compose([   
             transforms.LoadImage(image_only=True),
-            transforms.AddChannel(),
+            transforms.EnsureChannelFirst(),
             transforms.Orientation(axcodes="RAS"),
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True
@@ -62,7 +62,7 @@ class CustomDataset(Dataset):
         # Define transforms for the test data
         self.test_transform = transforms.Compose([   
             transforms.LoadImage(image_only=True),
-            transforms.AddChannel(),
+            transforms.EnsureChannelFirst(),
             transforms.Orientation(axcodes="RAS"),
             transforms.ScaleIntensityRange(
                 a_min=-175, a_max=250.0, b_min=0, b_max=1.0, clip=True

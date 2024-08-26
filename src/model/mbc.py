@@ -62,7 +62,7 @@ class MultiModalbileductClassifier_3d(nn.Module):
         self.num_features = dict['num_features']
         self.model_architecture = dict['model_architecture']
         self.model_parameters = dict['model_parameters']
-        self.pretrain_path = dict['pretrain_path']
+        self.pretrain_path = dict['image_pretrain_path']
         super(MultiModalbileductClassifier_3d, self).__init__()
         
         # Load pre-trained backbone model
@@ -70,7 +70,7 @@ class MultiModalbileductClassifier_3d(nn.Module):
         weight = torch.load(self.pretrain_path)
         model.load_from(weights=weight)
         self.model = model
-        self.feature_dim = 18  # number of features
+        self.feature_dim = 19  # number of features
 
         self.global_avg_pool = nn.AdaptiveAvgPool3d(1)
         self.fc = nn.Sequential(nn.Linear(self.num_features + self.feature_dim, 256),
