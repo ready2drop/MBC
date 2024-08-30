@@ -4,8 +4,9 @@ from pytz import timezone
 from datetime import datetime
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import matplotlib.pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay, roc_auc_score
 from sklearn.manifold import TSNE
+from sklearn.calibration import calibration_curve
 import seaborn as sns
 
 def logdir(str, mode, modality):
@@ -87,7 +88,51 @@ def save_confusion_matrix_roc_curve(targets_all, predicted_all, log_dir, model_n
         plt.title(f'Receiver Operating Characteristic of {model_name}')
         plt.legend(loc="lower right")
         plt.savefig(os.path.join(log_dir, f'{model_name}_roc_curve.png'))    
-        
+
+def plot_roc_and_calibration_test(models, X_test, y_test, log_dir, model_names):
+    """
+    Plot ROC and Calibration curves for multiple models on the test set.
+    
+    Parameters:
+    models (list): List of trained models to evaluate.
+    X_test (array-like): Test feature data.
+    y_test (array-like): Test target data.
+    model_names (list): List of model names corresponding to the models list.
+    """
+    
+    plt.figure(figsize=(14, 6))
+
+    # Subplot for ROC Curve
+    plt.subplot(1, 2, 1)
+    for model, name in zip(models, model_names):
+        y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+        fpr, tpr, _ = roc_curve(y_test, y_test_pred_proba)
+        plt.plot(fpr, tpr, marker='.', label=f'{name} ROC curve (area = %0.2f)' % auc(fpr, tpr))
+    
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+    plt.title('Receiver Operating Characteristic curve')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend(loc="lower right")
+    plt.legend()
+    
+    # Subplot for Calibration Curve
+    plt.subplot(1, 2, 2)
+    for model, name in zip(models, model_names):
+        y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+        prob_true, prob_pred = calibration_curve(y_test, y_test_pred_proba, n_bins=10)
+        plt.plot(prob_pred, prob_true, marker='.', label=name)
+    
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfectly Calibrated')
+    plt.title('Calibration Curve')
+    plt.xlabel('Mean Predicted Probability')
+    plt.ylabel('Fraction of Positives')
+    plt.legend(loc="lower right")
+    
+    plt.tight_layout()
+    plt.show()
+    plt.savefig(os.path.join(log_dir, 'roc_curve & Calibration curve.png'))
+            
 def plot_tsne(features, labels, epoch, log_dir):
     tsne = TSNE(n_components=2, random_state=42)
     tsne_features = tsne.fit_transform(features)

@@ -16,7 +16,7 @@ from src.dataset.bc_dataloader import getloader_bc
 from src.model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
 from src.model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
 
-from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
+from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve, plot_roc_and_calibration_test
 
 from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
@@ -54,10 +54,10 @@ parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Bi
 parser.add_argument("--model_architecture", default='SwinUNETR', type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/Part5_nifti_crop/', type=str, help="Directory of dataset")
 parser.add_argument("--image_pretrain_path", default='/home/rkdtjdals97/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
-parser.add_argument("--tabnet_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/tabnet_19.zip', type=str, help="finetuned weight path")
-parser.add_argument("--xgboost_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--lightgbm_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--rf_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-54-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--tabnet_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-26-train-mm/tabnet_19.zip', type=str, help="finetuned weight path")
+parser.add_argument("--xgboost_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-26-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--lightgbm_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-26-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--rf_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-08-26-15-26-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
 parser.add_argument("--excel_file", default='dumc_0730a.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
@@ -65,7 +65,7 @@ parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
 parser.add_argument("--input_dim", default=19, type=int, help="num_features") # tabular features
-parser.add_argument("--fusion", default='intermediate', type=str, help="num_features") # 'early','intermediate', 'late'
+parser.add_argument("--fusion", default='early', type=str, help="num_features") # 'early','intermediate', 'late'
 
 args = parser.parse_args()
 args.log_dir = logdir(args.log_dir, args.mode, args.modality)
@@ -167,6 +167,7 @@ else:
         test_preds_binary = (preds >= 0.5).astype(int)
 
         save_confusion_matrix_roc_curve(y_test, test_preds_binary, args.log_dir, model_name) 
+        
         # Confusion matrix for the test set
         conf_matrix_test = confusion_matrix(y_test, test_preds_binary)
         # Compute ROC curve and AUC
@@ -227,4 +228,11 @@ else:
     print("Evaluating TabNet Model")
     evaluate_model(tabnet_clf, X_test, y_test, 'TabNet')
 
+
+    # List of models
+    models = [xgb_model, lgbm_model, rf_model, tabnet_clf]
+    # Corresponding model names
+    model_names = ['XGBoost','LightGBM', 'Random Forest','TabNet']
+    
+    plot_roc_and_calibration_test(models, X_test, y_test, args.log_dir, model_names) 
 
