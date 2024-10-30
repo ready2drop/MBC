@@ -16,7 +16,7 @@ from src.dataset.bc_dataloader import getloader_bc
 from src.model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
 from src.model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
 
-from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve, plot_roc_and_calibration_test
+from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve, plot_roc_and_calibration_test, save_feature_importance
 
 from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
@@ -158,7 +158,9 @@ else:
     y_test = np.hstack(y_test)
 
     print('X_test shape : ', X_test.shape, 'y_test shape : ', y_test.shape) 
-
+    # Get feature names from tabular data (X_test should include tabular features)
+    feature_names = [f'Feature_{i}' for i in range(X_test.shape[1])]
+    
     def evaluate_model(model, X_test, y_test, model_name):
         preds = model.predict_proba(X_test)[:, 1]
         test_auc = roc_auc_score(y_test, preds)
@@ -187,7 +189,11 @@ else:
         print(f"Test Specificity: {specificity_test}")
         print(f"Test Precision: {precision_test}")
         print(f"FINAL TEST SCORE FOR MBC : {test_auc}")
-        return test_auc
+        # # Save feature importance if applicable (for XGBoost, LightGBM, RandomForest)
+        # if hasattr(model, 'feature_importances_'):
+        #     save_feature_importance(model.feature_importances_, feature_names, model_name, args.log_dir)
+        
+        # return test_auc
 
     # Load and evaluate RandomForest model
     with open(PARAMS['xgboost_ckpt_path'], 'rb') as f:

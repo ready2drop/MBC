@@ -33,7 +33,7 @@ warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description="Swin UNETR segmentation pipeline")
 parser.add_argument(
-    "--pretrained_dir", default="/home/irteam/rkdtjdals97-dcloud-dir/MBC/preprocessing/", type=str, help="pretrained checkpoint directory"
+    "--pretrained_dir", default="/home/rkdtjdals97/MBC/preprocessing/", type=str, help="pretrained checkpoint directory"
 )
 parser.add_argument("--data_dir", default="/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part1_nifti/", type=str, help="dataset directory")
 parser.add_argument("--exp_name", default="test1", type=str, help="experiment name")

@@ -18,6 +18,7 @@ from src.model.ibc import ImagebileductClassifier_2d, ImagebileductClassifier_3d
 from src.utils.loss import get_optimizer_loss_scheduler
 from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
 
+print("TEST 1")
 
 def seed_everything(seed):
     torch.manual_seed(seed) #torch를 거치는 모든 난수들의 생성순서를 고정한다
@@ -139,6 +140,9 @@ parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 
 args = parser.parse_args()
+
+print("TEST 2")
+
 args.log_dir = logdir(args.log_dir, args.mode, args.modality)
 
 PARAMS = vars(args)

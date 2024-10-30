@@ -7,19 +7,19 @@ warnings.filterwarnings('ignore')
 def rename_columns(df):
     df.columns = df.columns.str.upper()
     df.rename(columns={
-        '환자번호': 'ID',
+        'PT_NO': 'ID',
         '성별': 'SEX',
         '생년월일': 'BIRTH_DATE',
         '나이': 'AGE',
         # '검체명': 'SAMPLE',
-        '항목명': 'ITEM',
-        # '검사항목명': 'ITEM',
-        '검사결과': 'TEST_RESULT',
-        # '검사결과-수치값': 'TEST_RESULT',
-        # '검사시행일': 'APPOINTMENT_DATE',
-        '접수일시': 'APPOINTMENT_DATE',
-        # '입력일시': 'MEASUREMENT_DATE',
-        '측정일시': 'MEASUREMENT_DATE',
+        # '항목명': 'ITEM',
+        '검사항목명': 'ITEM',
+        # '검사결과': 'TEST_RESULT',
+        '검사결과-수치값': 'TEST_RESULT',
+        '검사시행일': 'APPOINTMENT_DATE',
+        # '접수일시': 'APPOINTMENT_DATE',
+        '입력일시': 'MEASUREMENT_DATE',
+        # '측정일시': 'MEASUREMENT_DATE',
     }, inplace=True)
     
     return df
@@ -144,12 +144,12 @@ def vital_preprocessing(his_df, emr_df):
         rename_columns(his_df)
         rename_columns(emr_df)
         
-        his_df = calculate_age(his_df)
-        emr_df = calculate_age(emr_df)
+        # his_df = calculate_age(his_df)
+        # emr_df = calculate_age(emr_df)
         
         filtered_measurement_his = get_first_measurements(his_df)
         filtered_measurement_emr = get_first_measurements(emr_df)
-        
+
         
         vital_his_df = merge_with_filtered_data(his_df, filtered_measurement_his)
         vital_emr_df = merge_with_filtered_data(emr_df, filtered_measurement_emr)
@@ -232,10 +232,10 @@ def main(data_path, vital_blood_excel, ct_excel, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get json")
-    parser.add_argument("--data_dir", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part5_nifti/', type=str, help="data directory")
-    parser.add_argument("--vital_blood_excel", default='20240502_소화기내과 연구용 자료신청_활력징후와혈액검사_부가설명포함.xlsx', type=str, help="vital blood excel name")
-    parser.add_argument("--ct_excel", default='bileduct_data_20240629b.xlsx', type=str, help="ct excel name")
-    parser.add_argument("--output", default='dumc_07301.csv', type=str, help="output name")
+    parser.add_argument("--data_dir", default='/home/rkdtjdals97/datasets/DUMC_nifti/', type=str, help="data directory")
+    parser.add_argument("--vital_blood_excel", default='20240927_vital.xlsx', type=str, help="vital blood excel name")
+    parser.add_argument("--ct_excel", default='/home/rkdtjdals97/datasets/DUMC_nifti/bileduct_data_20241023a.xlsx', type=str, help="ct excel name")
+    parser.add_argument("--output", default='dumc_1023.csv', type=str, help="output name")
     
     args = parser.parse_args()
     

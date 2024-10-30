@@ -8,6 +8,8 @@ from sklearn.metrics import ConfusionMatrixDisplay, roc_auc_score
 from sklearn.manifold import TSNE
 from sklearn.calibration import calibration_curve
 import seaborn as sns
+import pandas as pd
+
 
 def logdir(str, mode, modality):
     seoul_timezone = timezone('Asia/Seoul')
@@ -144,3 +146,38 @@ def plot_tsne(features, labels, epoch, log_dir):
     plt.legend()
     plt.savefig(os.path.join(log_dir,f'tsne_epoch_{epoch}.png'))
     plt.show()        
+    
+    
+# Define a function to save feature importance
+def save_feature_importance(importance, feature_names, model_name, log_dir):
+    """
+    Save the feature importance as a CSV file and optionally plot it.
+    
+    :param importance: Feature importance values (list or array).
+    :param feature_names: Corresponding feature names.
+    :param model_name: Name of the model for which we are saving feature importance.
+    :param log_dir: Directory to save the CSV and plots.
+    """
+    # Create a DataFrame to hold the feature names and their corresponding importance
+    feature_df = pd.DataFrame({'Feature': feature_names, 'Importance': importance})
+    
+    # Sort by importance
+    feature_df = feature_df.sort_values(by='Importance', ascending=False)
+    
+    # Save as CSV
+    csv_path = os.path.join(log_dir, f'{model_name}_feature_importance.csv')
+    feature_df.to_csv(csv_path, index=False)
+    
+    print(f"Feature importance saved for {model_name} at {csv_path}")
+    
+    # Plot the feature importance
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x='Importance', y='Feature', data=feature_df)
+    plt.title(f'{model_name} Feature Importance')
+    plt.tight_layout()
+    
+    # Save plot
+    plot_path = os.path.join(log_dir, f'{model_name}_feature_importance.png')
+    plt.savefig(plot_path)
+    print(f"Feature importance plot saved for {model_name} at {plot_path}")
+    plt.close()    
