@@ -233,9 +233,9 @@ def main(data_path, vital_blood_excel, ct_excel, output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="get json")
     parser.add_argument("--data_dir", default='/home/rkdtjdals97/datasets/DUMC_nifti/', type=str, help="data directory")
-    parser.add_argument("--vital_blood_excel", default='20240927_vital.xlsx', type=str, help="vital blood excel name")
+    parser.add_argument("--vital_blood_excel", default='20241024_vital.xlsx', type=str, help="vital blood excel name")
     parser.add_argument("--ct_excel", default='/home/rkdtjdals97/datasets/DUMC_nifti/bileduct_data_20241023a.xlsx', type=str, help="ct excel name")
-    parser.add_argument("--output", default='dumc_1023.csv', type=str, help="output name")
+    parser.add_argument("--output", default='dumc_1024.csv', type=str, help="output name")
     
     args = parser.parse_args()
     

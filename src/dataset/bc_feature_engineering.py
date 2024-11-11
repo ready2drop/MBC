@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from glob import glob
 import os
+from imblearn.over_sampling import SMOTE
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -12,6 +13,7 @@ def load_data(data_dir : str,
               excel_file : str,
                 mode : str = "train",
                 modality : str = 'mm',
+                smote = bool,
                 ):
     
     
@@ -31,14 +33,14 @@ def load_data(data_dir : str,
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     
     #Column select
-    columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
     #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -50,14 +52,14 @@ def load_data(data_dir : str,
         return row.iloc[0, 1:].tolist() if not row.empty else None
     
     # Rename column 
-    data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
     # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
     #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
 
 
     for image_path in image_list:
@@ -106,11 +108,25 @@ def load_data(data_dir : str,
 
         # Concatenate minority class and undersampled majority class
         data = pd.concat([undersampled_majority_class, minority_class])
+        
+        # print("--------------Class imbalance--------------")
         # data = train_df
-        print(data['target'].value_counts())
+        # print(data['target'].value_counts())
+        
+        # if smote:  # Apply SMOTE if the flag is set
+        #     print("Applying SMOTE...")
+        #     smote = SMOTE(sampling_strategy='all', random_state=42)
+        #     X_data = data.drop(columns=['target'])
+        #     y_data = data['target']
+        #     X_data_res, y_data_res = smote.fit_resample(X_data, y_data)
+        #     data_resampled = pd.DataFrame(X_data_res, columns=X_data.columns)
+        #     data_resampled['target'] = y_data_res
+        #     data = data_resampled  # Update train_data with resampled data
+        #     print(data['target'].value_counts())
+            
         train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
         valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)
-    
+        
         if mode == 'train':
             print("Train set shape:", train_data.shape)
             print("Validation set shape:", valid_data.shape)
