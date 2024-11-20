@@ -15,4 +15,5 @@
 ## Image classification
 ## 3D
 # python src/train/train_linear.py --model_architecture 'SwinUNETR' --epochs 3000 --val_every 100 --data_shape '3d' --modality 'image' --data_path '/home/rkdtjdals97/datasets/Part5_nifti_crop/' --use_parallel --use_wandb
-python src/train/train_linear.py --model_architecture 'ViT' --num_gpus '2,3' --batch_size 138 --modality 'image' --data_path '/home/rkdtjdals97/datasets/DUMC_nifti_crop/' --use_parallel --use_wandb
+# python src/train/train_linear.py --model_architecture 'ViT' --num_gpus '0,1' --batch_size 6 --modality 'image' --data_path '/home/rkdtjdals97/datasets/DUMC_nifti_crop/' --use_parallel --use_wandb
+python src/train/train_linear.py --model_architecture 'ResNet' --num_gpus '2,3' --batch_size 6 --modality 'image' --data_path '/home/rkdtjdals97/datasets/DUMC_nifti_crop/' --use_parallel --use_wandb

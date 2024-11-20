@@ -78,11 +78,22 @@ class CITPModel_classifier(nn.Module):
         super(CITPModel_classifier, self).__init__()
         self.image_encoder = image_encoder
         self.tabular_encoder = tabular_encoder
-        self.fc = nn.Linear(hidden_dim * 2, 1)  # Assuming hidden_dim is the size of the encoded features
+        # Fully connected layers, BatchNorm, Dropout을 nn.Sequential로 묶음
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.BatchNorm1d(hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+            nn.Linear(hidden_dim // 2, 1)
+        )
 
     def forward(self, image, tabular):
         image_features = self.image_encoder(image)
         tabular_features = self.tabular_encoder(tabular)
         combined_features = torch.cat((image_features, tabular_features), dim=1)
-        output = self.fc(combined_features)
+        output = self.classifier(combined_features)
         return torch.sigmoid(output)    

@@ -47,6 +47,7 @@ class Tester:
         self.mode = dict['mode']
         self.modality = dict['modality']
         self.use_wandb = dict['use_wandb']
+        self.phase = dict['phase']
         
     def load_state_dict(self, weight_path, strict=False):
         sd = torch.load(weight_path, map_location="cpu")
@@ -57,7 +58,7 @@ class Tester:
         
     def test(self):
     
-        test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
+        test_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality, self.phase)
         self.model.eval()
         test_running_loss = 0.0
         correct_test = 0
@@ -125,25 +126,27 @@ parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum fo
 parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
 parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
 parser.add_argument("--batch_size", default=1, type=int, help="Batch size")
-parser.add_argument("--num_gpus", default=5, type=int, help="Number of GPUs")
+parser.add_argument("--num_gpus", default="0,1", type=str, help="Comma-separated list of GPU numbers")
 parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
 parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default="efficientnet_b0", type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part2_nifti/', type=str, help="Directory of dataset")
-parser.add_argument("--image_pretrain_path", default='/home/rkdtjdals97/MBC/pretrain/model_swinvit.pt', type=str, help="pretrained weight path")
+parser.add_argument("--image_pretrain_path", default=None, type=str, help="pretrained weight path")
 parser.add_argument("--ckpt_path", default='/home/irteam/rkdtjdals97-dcloud-dir/MBC/logs/2024-05-21-15-53-train/best_epoch_weights.pth', type=str, help="finetuned weight path")
 parser.add_argument("--excel_file", default='combined.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
+parser.add_argument("--phase", default='combine', type=str, help="CT phase") # 'portal', 'pre-enhance', 'combine'
+
 
 args = parser.parse_args()
 
 print("TEST 2")
 
-args.log_dir = logdir(args.log_dir, args.mode, args.modality)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.model_architecture)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
@@ -167,8 +170,7 @@ else:
     
 # Data parallel
 if PARAMS['use_parallel']:
-    model = DataParallel(model, device_ids=[i for i in range(PARAMS['num_gpus'])]).to(device)
-else:
+    model = DataParallel(model, device_ids=[int(gpu) for gpu in PARAMS['num_gpus'].split(",")]).to(device)
     model.to(device)    
 
 # loss, optimizer, scheduler

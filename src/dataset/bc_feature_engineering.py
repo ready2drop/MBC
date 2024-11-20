@@ -13,6 +13,7 @@ def load_data(data_dir : str,
               excel_file : str,
                 mode : str = "train",
                 modality : str = 'mm',
+                phase : str = 'portal',  # 'portal', 'pre-enhance', 'combine'
                 smote = bool,
                 ):
     
@@ -33,14 +34,14 @@ def load_data(data_dir : str,
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     
     #Column select
-    # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
        'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -52,14 +53,29 @@ def load_data(data_dir : str,
         return row.iloc[0, 1:].tolist() if not row.empty else None
     
     # Rename column 
-    # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
     data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
        'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
         'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+
+    # Filter images based on the phase
+    if phase == 'portal':
+        # Filter the images for the 'portal' phase by checking for 'Portal' in the filename
+        image_list = [img for img in image_list if 'Portal' in os.path.basename(img)]
+    elif phase == 'pre-enhance':
+        # Filter the images for the 'pre-enhance' phase by checking for 'Pre_enhance' in the filename
+        image_list = [img for img in image_list if 'Pre_enhance' in os.path.basename(img)]
+    elif phase == 'combine':
+        # Include both 'portal' and 'pre-enhance' images for the 'combine' phase
+        portal_images = [img for img in image_list if 'Portal' in os.path.basename(img)]
+        pre_enhance_images = [img for img in image_list if 'Pre_enhance' in os.path.basename(img)]
+        image_list = portal_images + pre_enhance_images
+    else:
+        raise ValueError("Invalid phase. Choose from ['portal', 'pre-enhance', 'combine']")
 
 
     for image_path in image_list:
@@ -110,19 +126,18 @@ def load_data(data_dir : str,
         data = pd.concat([undersampled_majority_class, minority_class])
         
         # print("--------------Class imbalance--------------")
-        # data = train_df
-        # print(data['target'].value_counts())
-        
-        # if smote:  # Apply SMOTE if the flag is set
-        #     print("Applying SMOTE...")
-        #     smote = SMOTE(sampling_strategy='all', random_state=42)
-        #     X_data = data.drop(columns=['target'])
-        #     y_data = data['target']
-        #     X_data_res, y_data_res = smote.fit_resample(X_data, y_data)
-        #     data_resampled = pd.DataFrame(X_data_res, columns=X_data.columns)
-        #     data_resampled['target'] = y_data_res
-        #     data = data_resampled  # Update train_data with resampled data
-        #     print(data['target'].value_counts())
+        if smote:  # Apply SMOTE if the flag is set
+            data = train_df
+            print(data['target'].value_counts())
+            print("Applying SMOTE...")
+            smote = SMOTE(sampling_strategy='all', random_state=42)
+            X_data = data.drop(columns=['target'])
+            y_data = data['target']
+            X_data_res, y_data_res = smote.fit_resample(X_data, y_data)
+            data_resampled = pd.DataFrame(X_data_res, columns=X_data.columns)
+            data_resampled['target'] = y_data_res
+            data = data_resampled  # Update train_data with resampled data
+            print(data['target'].value_counts())
             
         train_data, test_data = train_test_split(data, test_size=0.3, stratify=data['target'], random_state=123)
         valid_data, test_data = train_test_split(test_data, test_size=0.4, stratify=test_data['target'], random_state=123)

@@ -47,6 +47,7 @@ class Trainer:
         self.mode = dict['mode']
         self.modality = dict['modality']
         self.use_wandb = dict['use_wandb']
+        self.phase = dict['phase']
 
     def train_one_epoch(self, train_loader):
         self.model.train()
@@ -95,7 +96,7 @@ class Trainer:
         return train_loss, train_acc
 
     def train(self):
-        train_loader, valid_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality)
+        train_loader, valid_loader = getloader_bc(self.data_path, self.excel_file, self.batch_size, self.mode, self.modality, self.phase)
         train_losses, val_losses, train_accs, val_accs = [], [], [], []
         best_val_acc = 0.0
 
@@ -186,9 +187,10 @@ parser.add_argument("--data_shape", default='3d', type=str, help="Input data sha
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
+parser.add_argument("--phase", default='combine', type=str, help="CT phase") # 'portal', 'pre-enhance', 'combine'
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir, args.mode, args.modality)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.model_architecture)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)

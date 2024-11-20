@@ -32,7 +32,9 @@ class CustomDataset(Dataset):
                 mode=("bilinear"),
             ),
             # transforms.Zoom(zoom=1.2),
-            transforms.Resize(spatial_size=(96, 96, 96)),
+            # transforms.Resize(spatial_size=(96, 96, 96)),
+            transforms.Resize(spatial_size=(256, 256, 32)),
+            transforms.AdjustContrast(gamma=2),
             transforms.RandFlip(prob=0.1, spatial_axis=0),
             transforms.RandFlip(prob=0.1, spatial_axis=1),
             transforms.RandFlip(prob=0.1, spatial_axis=2),
@@ -55,7 +57,9 @@ class CustomDataset(Dataset):
                 mode=("bilinear"),
             ),
             # transforms.CropForeground(),
-            transforms.Resize(spatial_size=(96, 96, 96)),
+            # transforms.Resize(spatial_size=(96, 96, 96)),
+            transforms.Resize(spatial_size=(256, 256, 32)),
+            transforms.AdjustContrast(gamma=2),
             transforms.ToTensor(),
         ])
         
@@ -73,7 +77,9 @@ class CustomDataset(Dataset):
             ),
             transforms.CropForeground(),
             # transforms.SpatialCrop(roi_center=(200, 200, 0), roi_size=(256,256,1000)),
-            transforms.Resize(spatial_size=(96, 96, 96)),
+            # transforms.Resize(spatial_size=(96, 96, 96)),
+            transforms.Resize(spatial_size=(256, 256, 32)),
+            transforms.AdjustContrast(gamma=2),
             transforms.ToTensor(),
         ])
         
@@ -87,7 +93,7 @@ class CustomDataset(Dataset):
 
             # Check the shape of the image and handle if it doesn't meet the criteria
             image = transforms.LoadImage(image_only=True)(img_name)
-            if image.shape[0] != 512 or image.shape[1] != 512 or image.shape[2] is None:
+            if image.shape[0] == 0 or image.shape[1] == 0 or image.shape[2] == 0:
                 # print(f"Skipping image {img_name} due to incorrect shape: {image.shape}")
                 idx = (idx + 1) % len(self.dataframe)
                 img_name = self.dataframe.iloc[idx, 0]
@@ -116,7 +122,7 @@ class CustomDataset(Dataset):
 
             # Check the shape of the image and handle if it doesn't meet the criteria
             image = transforms.LoadImage(image_only=True)(img_name)
-            if image.shape[0] != 512 or image.shape[1] != 512 or image.shape[2] is None:
+            if image.shape[0] == 0 or image.shape[1] == 0 or image.shape[2] == 0:
                 # print(f"Skipping image {img_name} due to incorrect shape: {image.shape}")
                 idx = (idx + 1) % len(self.dataframe)
                 img_name = self.dataframe.iloc[idx, 0]
@@ -154,27 +160,29 @@ def getloader_bc(
     batch_size: int = 1,
     mode : str = "train",
     modality : str = "mm",
+    phase : str = 'portal',
+    smote : bool = False
     ):
     
     if mode == 'train':
-        train_data, valid_data = load_data(data_dir, excel_file, mode, modality)
+        train_data, valid_data = load_data(data_dir, excel_file, mode, modality, phase, smote)
         train_dataset = CustomDataset(train_data, modality, mode='train')
         valid_dataset = CustomDataset(valid_data, modality, mode='val')
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
         return train_loader, valid_loader
     elif mode == 'test':
-        test_data = load_data(data_dir, excel_file, mode, modality)
+        test_data = load_data(data_dir, excel_file, mode, modality, phase, smote)
         test_dataset = CustomDataset(test_data, modality, mode='test')
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return test_loader
     elif mode == 'pretrain':
-        pretrain_data = load_data(data_dir, excel_file, mode, modality)
+        pretrain_data = load_data(data_dir, excel_file, mode, modality, phase, smote)
         pretrain_dataset = CustomDataset(pretrain_data, modality, mode='pretrain')
         pretrain_loader = DataLoader(pretrain_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return pretrain_loader
     elif mode == 'eval':
-        eval_data = load_data(data_dir, excel_file, mode, modality)
+        eval_data = load_data(data_dir, excel_file, mode, modality, phase, smote)
         eval_dataset = CustomDataset(eval_data, modality, mode='eval')
         eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=True,drop_last=True)
         return eval_loader

@@ -35,7 +35,7 @@ def main(dict, device):
 
     # Data parallel
     if dict['use_parallel']:
-        model = DataParallel(model, device_ids=[i for i in range(dict['num_gpus'])]).to(device)
+        model = DataParallel(model, device_ids=[int(gpu) for gpu in PARAMS['num_gpus'].split(",")] ).to(device)
     else:
         model.to(device) 
     
@@ -71,8 +71,8 @@ def main(dict, device):
             if loss.item() < best_loss:
                 best_loss = loss.item()
                 print("Model Saved ! Current Best loss: {} ".format(best_loss))
-                torch.save(model.module.image_encoder.state_dict(), f"{dict['log_dir']}/CITP_Image_encoder_{dict['hidden_dim']}.pth")
-                torch.save(model.module.tabular_encoder.state_dict(), f"{dict['log_dir']}/CITP_Tabular_encoder_{dict['hidden_dim']}.pth")
+                torch.save(model.module.image_encoder.state_dict(), f"{dict['log_dir']}/CITP_Image_encoder_{dict['hidden_dim']}_{dict['model_architecture']}.pth")
+                torch.save(model.module.tabular_encoder.state_dict(), f"{dict['log_dir']}/CITP_Tabular_encoder_{dict['hidden_dim']}_{dict['model_architecture']}.pth")
         
         # Calculate average loss for the epoch
         avg_train_loss = train_loss / total_batches
@@ -89,20 +89,20 @@ def main(dict, device):
     
 if __name__ == "__main__":
     
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 
     parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
-    parser.add_argument("--epochs", default=100, type=int, help="Epoch")
+    parser.add_argument("--epochs", default=1000, type=int, help="Epoch")
     parser.add_argument("--learning_rate", default=1e-4, type=float, help="Learning rate")
     parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
-    parser.add_argument("--batch_size", default=16, type=int, help="Batch size")
-    parser.add_argument("--num_gpus", default=8, type=int, help="Number of GPUs")
+    parser.add_argument("--batch_size", default=10, type=int, help="Batch size")
+    parser.add_argument("--num_gpus", default="0,1", type=str, help="Number of GPUs")
     parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
     parser.add_argument("--model_architecture", default="ViT", type=str, help="Model architecture")
-    parser.add_argument("--data_path", default='/home/irteam/rkdtjdals97-dcloud-dir/datasets/Part5_nifti_crop/', type=str, help="Directory of dataset")
-    parser.add_argument("--excel_file", default='dumc_0730a.csv', type=str, help="tabular data")
+    parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/DUMC_nifti_crop/', type=str, help="Directory of dataset")
+    parser.add_argument("--excel_file", default='dumc_1024a.csv', type=str, help="tabular data")
     parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
     parser.add_argument("--mode", default='pretrain', type=str, help="mode") # 'train', 'test'
     parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'

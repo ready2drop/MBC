@@ -11,7 +11,7 @@
 
 echo "test shell"
 
-python src/train/test_linear.py --model_architecture SwinUNETR --ckpt_path /home/rkdtjdals97/MBC/logs/2024-08-17-18-29-train-image/best_epoch_weights.pth --data_path '/home/rkdtjdals97/datasets/Part5_nifti_crop/' --data_shape 3d --modality mm --use_parallel --excel_file dumc_0730a.csv --use_wandb
+# python src/train/test_linear.py --model_architecture ViT --ckpt_path /home/rkdtjdals97/MBC/logs/2024-11-15-16-59-train-mm/best_epoch_weights.pth --data_path '/home/rkdtjdals97/datasets/DUMC_nifti_crop/' --modality mm --use_parallel --excel_file dumc_1024a.csv --use_wandb
 
 # Wait for 50 seconds
 # sleep 50
@@ -19,6 +19,6 @@ python src/train/test_linear.py --model_architecture SwinUNETR --ckpt_path /home
 ## Image classification
 ## 3D
 
-echo "test shell2"
-python src/train/test_linear.py --model_architecture 'SwinUNETR' --ckpt_path /home/rkdtjdals97/MBC/logs/2024-08-18-23-22-train-mm/best_epoch_weights.pth --data_path '/home/rkdtjdals97/datasets/Part5_nifti_crop/' --data_shape '3d' --modality 'image'  --use_parallel --excel_file dumc_0730a.csv --use_wandb
+# echo "test shell2"
+python src/train/test_linear.py --model_architecture ViT --ckpt_path /home/rkdtjdals97/MBC/logs/2024-11-15-16-59-train-image/best_epoch_weights.pth --data_path '/home/rkdtjdals97/datasets/DUMC_nifti_crop/' --modality 'image'  --use_parallel --excel_file dumc_1024a.csv --use_wandb
 

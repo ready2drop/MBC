@@ -11,13 +11,13 @@ import seaborn as sns
 import pandas as pd
 
 
-def logdir(str, mode, modality):
+def logdir(str, mode, modality, model):
     seoul_timezone = timezone('Asia/Seoul')
     today_seoul = datetime.now(seoul_timezone)
     
     directory_name = today_seoul.strftime("%Y-%m-%d-%H-%M")
     
-    log_dir = str+directory_name + '-' + mode + '-' + modality
+    log_dir = str+directory_name + '-' + mode + '-' + modality + '-' + model
     
     if os.path.exists(log_dir):
         pass
@@ -55,7 +55,8 @@ def get_model_parameters(dict):
         pass
     
     elif dict['model_architecture'] == 'ViT':
-        dict['model_parameters'] = {'img_size' : (96, 96, 96), 'in_channels' : 1, 'patch_size' : (16, 16, 16), 'hidden_size' : 768, 'num_layers' : 12, 'num_heads' : 12, 'mlp_dim' : 3072, 'dropout_rate' : 0.1}
+        # dict['model_parameters'] = {'img_size' : (96, 96, 96), 'in_channels' : 1, 'patch_size' : (16, 16, 16), 'hidden_size' : 768, 'num_layers' : 12, 'num_heads' : 12, 'mlp_dim' : 3072, 'dropout_rate' : 0.1}
+        dict['model_parameters'] = {'img_size' : (256, 256, 32), 'in_channels' : 1, 'patch_size' : (16, 16, 4), 'hidden_size' : 768, 'num_layers' : 12, 'num_heads' : 12, 'mlp_dim' : 3072, 'dropout_rate' : 0.1}
         dict['num_features'] = 768
         pass
     
