@@ -9,7 +9,9 @@
 *.pkl
 *.ipynb
 *.log
+*.pem
 .gitignore
+
 
 logs/*
 wandb/*
