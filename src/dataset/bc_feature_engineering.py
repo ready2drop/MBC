@@ -33,15 +33,32 @@ def load_data(data_dir : str,
     #Column rename
     df.rename(columns={'ID': 'patient_id', 'REAL_STONE':'target'}, inplace=True)
     
-    #Column select
-    columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    # all column(n=20)
+    # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    
+    # Non VISIBLE_STONE_CT(n=19)
     # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT',
     #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
     #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    
+    #demo + image info(n=6)
+    # columns = ['patient_id', 'SEX', 'AGE', 'PANCREATITIS', 'VISIBLE_STONE_CT','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']
+    
+    # demo + blood test(n=10)
+    # columns = ['patient_id', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'SEX', 'AGE', 'target']
+    
+    # demo + vital sign(n=7)
+    # columns = ['patient_id','FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR', 'FIRST_BT', 'SEX', 'AGE','target']
+    
+    # feature importance(n=12)
+    columns = ['patient_id','VISIBLE_STONE_CT','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'AGE','target']
+    
+    # feature importance w/o VISIBLE_STONE_CT(n=11)
+    # columns = ['patient_id','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'AGE','target']
     
     data = df[columns]
     data['patient_id'] = data['patient_id'].astype(str)
@@ -52,15 +69,32 @@ def load_data(data_dir : str,
         row = data[data['patient_id'].astype(str).str.startswith(image_number)]
         return row.iloc[0, 1:].tolist() if not row.empty else None
     
-    # Rename column 
-    data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
-       'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
-       'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
-        'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    # all column(n=20)
+    # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
+    #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
+    #    'FIRST_BT', 'VISIBLE_STONE_CT', 'PANCREATITIS','SEX', 'AGE',
+    #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    
+    # Non VISIBLE_STONE_CT(n=19)
     # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT',
     #    'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
     #    'FIRST_BT', 'PANCREATITIS','SEX', 'AGE',
     #     'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    
+    #demo + image info(n=6)
+    # data_dict = {key: [] for key in ['image_path','SEX', 'AGE', 'PANCREATITIS', 'VISIBLE_STONE_CT','DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM','target']}
+    
+    # demo + blood test(n=10)
+    # data_dict = {key: [] for key in ['image_path','Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'SEX', 'AGE', 'target']}
+    
+    # demo + vital sign(n=7)
+    # data_dict = {key: [] for key in ['image_path','FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR', 'FIRST_BT', 'SEX', 'AGE','target']}
+    
+    # feature importance(n=12)
+    data_dict = {key: [] for key in ['image_path','VISIBLE_STONE_CT', 'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'AGE','target']}
+    
+    # feature importance w/o VISIBLE_STONE_CT(n=11)
+    # data_dict = {key: [] for key in ['image_path', 'DUCT_DILIATATION_8MM', 'DUCT_DILIATATION_10MM', 'Hb', 'PLT', 'WBC', 'ALP', 'ALT', 'AST', 'CRP', 'BILIRUBIN', 'AGE','target']}
 
     # Filter images based on the phase
     if phase == 'portal':
@@ -107,8 +141,14 @@ def load_data(data_dir : str,
         columns_to_scale = ['Hb', 'PLT', 'WBC', 'ALP', 'ALT',
        'AST', 'CRP', 'BILIRUBIN', 'FIRST_SBP', 'FIRST_DBP', 'FIRST_HR', 'FIRST_RR',
        'FIRST_BT','AGE']
-        scaler = MinMaxScaler()
-        train_df[columns_to_scale] = scaler.fit_transform(train_df[columns_to_scale])
+
+        columns_to_scale_existing = [col for col in columns_to_scale if col in train_df.columns]
+
+        if columns_to_scale_existing:
+            scaler = MinMaxScaler()
+            train_df[columns_to_scale_existing] = scaler.fit_transform(train_df[columns_to_scale_existing])
+        else:
+            print("No columns to scale.")
 
     if mode == 'train' or mode == 'test':
         print("--------------Class balance--------------")

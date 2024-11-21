@@ -10,10 +10,14 @@ class ImageEncoder3D_earlyfusion(nn.Module):
         
         # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
         self.fc = nn.Linear(1*96*96*96, self.output_dim)
+        
+        # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
+        self.fc = nn.Linear(1*96*96*96, self.output_dim)
  
                 
     def forward(self, x):
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1) #
+        print(x.shape)
         x = self.fc(x)
         return x
     
@@ -45,14 +49,25 @@ class ImageEncoder3D_latefusion(nn.Module):
  
                 
     def forward(self, image):
-        # SwinUNetR의 forward 메서드 호출
-        hidden_states_out = self.model.swinViT(image)   
-        x = self.model.encoder1(image) # torch.Size([1, 48, 96, 96, 96])
-        x = self.model.encoder2(hidden_states_out[0]) # torch.Size([1, 48, 48, 48, 48])
-        x = self.model.encoder3(hidden_states_out[1]) # torch.Size([1, 96, 24, 24, 24])
-        x = self.model.encoder4(hidden_states_out[2]) # torch.Size([1, 192, 12, 12, 12])
-        x = self.global_avg_pool(x) # torch.Size([1, 192, 1, 1, 1])
-        x = x.view(x.size(0), -1) # torch.Size([1, 192])
-        x = self.fc(x)
+        if self.model_architecture == 'SwinUNETR':
+            # SwinUNetR의 forward 메서드 호출
+            hidden_states_out = self.model.swinViT(image)     
+            x = self.model.encoder1(image) # torch.Size([1, 48, 96, 96, 96])
+            x = self.model.encoder2(hidden_states_out[0]) # torch.Size([1, 48, 48, 48, 48])
+            x = self.model.encoder3(hidden_states_out[1]) # torch.Size([1, 96, 24, 24, 24])
+            x = self.model.encoder4(hidden_states_out[2]) # torch.Size([1, 192, 12, 12, 12])
+            # x = self.model.encoder10(hidden_states_out[4]) # torch.Size([1, 768, 3, 3, 3])
+            # SwinUNetR의 출력을 classifier에 통과시켜서 분류 작업 수행
+            x = self.global_avg_pool(x) # torch.Size([1, 192, 1, 1, 1])
+            x = x.view(x.size(0), -1) # torch.Size([1, 192])
+            
+        elif self.model_architecture == 'ViT':
+            x, _ = self.model(image)          # torch.Size([batch, 216, 768])  
+            x = x.mean(dim=1)          # torch.Size([batch, 768])
+            x = self.fc(x)
+
+        elif self.model_architecture == 'ResNet':
+            x = self.model(image)    # Flatten to [batch, 400]
+            x = self.fc(x)
         
         return x

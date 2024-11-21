@@ -66,9 +66,10 @@ parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm
 parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
 parser.add_argument("--input_dim", default=19, type=int, help="num_features") # tabular features
 parser.add_argument("--fusion", default='early', type=str, help="num_features") # 'early','intermediate', 'late'
+parser.add_argument("--phase", default='combine', type=str, help="CT phase") # 'portal', 'pre-enhance', 'combine'
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir, args.mode, args.modality)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.modality,args.model_architecture)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
@@ -99,7 +100,7 @@ else:
     tabular_encoder = TabularEncoder_latefusion(PARAMS).to(device)
 
 
-test_loader = getloader_bc(PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['mode'], PARAMS['modality'])
+test_loader = getloader_bc(PARAMS['data_path'], PARAMS['excel_file'], PARAMS['batch_size'], PARAMS['mode'], PARAMS['modality'], PARAMS['phase'])
 
 if PARAMS['fusion'] == 'late':
     image_encoder.eval()
