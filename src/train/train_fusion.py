@@ -15,16 +15,21 @@ import torch
 from src.dataset.bc_dataloader import getloader_bc
 from src.model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
 from src.model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
-from src.utils.loss import get_optimizer_loss_scheduler
 from src.utils.util import logdir, get_model_parameters
 
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 from pytorch_tabnet.tab_model import TabNetClassifier
 from pytorch_tabnet.pretraining import TabNetPretrainer
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
-from sklearn.ensemble import RandomForestClassifier
+from catboost import CatBoostClassifier
+from sklearn.ensemble import *
 from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
+from sklearn.calibration import CalibratedClassifierCV
+
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -43,18 +48,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
-parser.add_argument("--epochs", default=100, type=int, help="Epoch")
-parser.add_argument("--val_every", default=10, type=int, help="Learning rate")
-parser.add_argument("--learning_rate", default=1e-4, type=float, help="Learning rate")
-parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
-parser.add_argument("--optimizer", default='adamw', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
-parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
-parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
-parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
-parser.add_argument("--batch_size", default=15, type=int, help="Batch size")
-parser.add_argument("--num_gpus", default="0,1", type=str, help="Number of GPUs")
-parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
-parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
+parser.add_argument("--batch_size", default=100, type=int, help="Batch size")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='ViT', type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/DUMC_nifti_crop/', type=str, help="Directory of dataset")
@@ -66,7 +60,7 @@ parser.add_argument("--log_dir", default='logs/', type=str, help="log directory"
 parser.add_argument("--mode", default='train', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
-parser.add_argument("--input_dim", default=19, type=int, help="num_features") # tabular features
+parser.add_argument("--input_dim", default=12, type=int, help="num_features") # all tabular features minus 2(image_path, target) 
 parser.add_argument("--fusion", default='early', type=str, help="fusion method") # 'early','intermediate', 'late'
 parser.add_argument("--phase", default='combine', type=str, help="CT phase") # 'portal', 'pre-enhance', 'combine'
 
@@ -219,62 +213,47 @@ else:
         print(f'{model_name} - Train AUC: {train_auc}, Val AUC: {val_auc}')
         print(f'{model_name} - Train Accuracy: {train_acc}, Val Accuracy: {val_acc}')
         print(f'{model_name} - Train LogLoss: {train_logloss}, Val LogLoss: {val_logloss}')
-        
-    # XGBoost
-    xgb_model = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
-    train_and_evaluate_model(xgb_model, X_train, y_train, X_val, y_val, 'XGBoost')
-    with open(f"{PARAMS['log_dir']}/xgb_model.pkl", 'wb') as f:
-        pickle.dump(xgb_model,  f)  # Save the XGBoost model
+    
+    # Define all models in a dictionary
+    models = {
+        "XGBoost": XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss'),
+        "LightGBM": LGBMClassifier(random_state=42, verbose=-1),
+        "RandomForest": RandomForestClassifier(random_state=42),
+        "AdaBoost": AdaBoostClassifier(random_state=42),
+        "Logistic Regression": LogisticRegression(random_state=42),
+        "Naive Bayes": GaussianNB(),
+        "SVM": SVC(random_state=42, probability=True),
+        "Decision Tree": DecisionTreeClassifier(random_state=42),
+        "CatBoost": CatBoostClassifier(random_state=42, verbose=0),
+        "TabNet": TabNetClassifier(verbose=0)
+    }
+    # Create a Stacking Ensemble Model
+    stacking_model = StackingClassifier(
+        estimators=[(name, model) for name, model in models.items()],
+        final_estimator=LogisticRegression()
+    )
 
-    # LightGBM
-    lgbm_model = LGBMClassifier(random_state=42,verbose_eval = -1)
-    train_and_evaluate_model(lgbm_model, X_train, y_train, X_val, y_val, 'LightGBM')
-    with open(f"{PARAMS['log_dir']}/lgbm_model.pkl", 'wb') as f:
-        pickle.dump(lgbm_model,  f)  # Save the XGBoost model
+    # Train the stacking model
+    stacking_model.fit(X_train, y_train)
 
-    # RandomForest
-    rf_model = RandomForestClassifier(random_state=42)
-    train_and_evaluate_model(rf_model, X_train, y_train, X_val, y_val, 'RandomForest')
-    with open(f"{PARAMS['log_dir']}/rf_model.pkl", 'wb') as f:
-        pickle.dump(rf_model,  f)  # Save the XGBoost model
+    # Add calibrated stacking model to the list of models
+    models["Stacking Model"] = stacking_model
+    
+    # Calibrate the Stacking Model
+    calibrated_stacking_model = CalibratedClassifierCV(stacking_model, cv="prefit", method="sigmoid")
+    calibrated_stacking_model.fit(X_train, y_train)
 
-    # Set tabnet_params
-    tabnet_params = {"cat_emb_dim":2,
-                "optimizer_fn":torch.optim.Adam,
-                "optimizer_params":dict(lr=2e-2),
-                "scheduler_params":{"step_size":50, # how to use learning rate scheduler
-                                "gamma":0.9},
-                "scheduler_fn":torch.optim.lr_scheduler.StepLR,
-                "mask_type":'sparsemax', # "entmax"
-            }
+    # Add calibrated stacking model to the list of models
+    models["Calibrated Stacking Model"] = calibrated_stacking_model
+    
+    # Function to train, evaluate, and save each model
+    def process_model(model_name, model, X_train, y_train, X_val, y_val, log_dir, input_dim):
+        train_and_evaluate_model(model, X_train, y_train, X_val, y_val, model_name)
+        with open(f"{log_dir}/{model_name.lower().replace(' ', '_')}_model_{input_dim}.pkl", 'wb') as f:
+            pickle.dump(model, f)
 
-    # Adjust tabnet_params to include combined_dim
-    tabnet_params['input_dim'] = combined_dim
-    tabnet_params['output_dim'] = PARAMS['num_classes']
-
-    # Load pretrained model
-    # loaded_pretrain = TabNetPretrainer()
-    # loaded_pretrain.load_model(PARAMS['tabnet_pretrain_path'])
-    # print('All weights are loaded!')    
-
-    tabnet_clf = TabNetClassifier(**tabnet_params
-                        )
-            
-    tabnet_clf.fit(
-        X_train, y_train,
-        eval_set=[(X_train, y_train),(X_val, y_val)],
-        eval_name=['train', 'valid'],
-        eval_metric=['auc', 'accuracy', 'balanced_accuracy', 'logloss'],
-        max_epochs=1000,
-        patience=50,
-        batch_size=1024, virtual_batch_size=128,
-        num_workers=0,
-        drop_last=False,
-        # from_unsupervised=loaded_pretrain
-    ) 
-
-    # save tabnet model
-    saving_path_name = f"{PARAMS['log_dir']}/tabnet_{PARAMS['input_dim']}"
-    saved_filepath = tabnet_clf.save_model(saving_path_name)
+    # Iterate through models and process them
+    for model_name, model in models.items():
+        process_model(model_name, model, X_train, y_train, X_val, y_val, PARAMS['log_dir'], PARAMS['input_dim'])
 
 

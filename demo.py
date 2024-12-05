@@ -11,6 +11,7 @@ import nibabel as nib
 import numpy as np
 from PIL import Image
 from monai.transforms import Resize
+import cv2
 # from LaMed.src.model.language_model import *
 
 

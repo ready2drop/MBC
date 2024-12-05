@@ -8,16 +8,15 @@ class ImageEncoder3D_earlyfusion(nn.Module):
         self.output_dim = dict['output_dim']
         super(ImageEncoder3D_earlyfusion, self).__init__()
         
-        # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
-        self.fc = nn.Linear(1*96*96*96, self.output_dim)
+        # # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
+        # self.fc = nn.Linear(1*96*96*96, self.output_dim)
         
         # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가
-        self.fc = nn.Linear(1*96*96*96, self.output_dim)
+        self.fc = nn.Linear(1*32*256*256, self.output_dim)
  
                 
     def forward(self, x):
         x = x.view(x.size(0), -1) #
-        print(x.shape)
         x = self.fc(x)
         return x
     
@@ -34,8 +33,10 @@ class ImageEncoder3D_latefusion(nn.Module):
         
         # Load pre-trained backbone model
         model = getattr(nets, self.model_architecture)(**self.model_parameters)
-        weight = torch.load(self.pretrain_path)
-        model.load_from(weights=weight)
+        if self.pretrain_path is not None:
+            # Load pre-trained weights if pretrain_path is provided
+            weight = torch.load(self.pretrain_path)
+            model.load_from(weights=weight)
         self.model = model
         
         # Classifier 추가를 위해 Global Average Pooling 및 Fully Connected 레이어 추가

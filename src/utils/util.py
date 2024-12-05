@@ -92,6 +92,49 @@ def save_confusion_matrix_roc_curve(targets_all, predicted_all, log_dir, model_n
         plt.legend(loc="lower right")
         plt.savefig(os.path.join(log_dir, f'{model_name}_roc_curve.png'))    
 
+def decision_curve_analysis(y_true, y_prob, thresholds=None):
+    """
+    Perform Decision Curve Analysis (DCA) for a single model, showing only net benefit >= 0.
+
+    Parameters:
+    - y_true (array-like): True binary labels.
+    - y_prob (array-like): Predicted probabilities for the positive class.
+    - thresholds (array-like): Array of threshold probabilities. Defaults to 0.01 to 0.99 in steps of 0.01.
+
+    Returns:
+    - results (dict): Dictionary containing thresholds and net benefits for model, treat-all, and treat-none strategies.
+    """
+    if thresholds is None:
+        thresholds = np.arange(0.1, 0.7, 0.1)
+
+    net_benefit_model = []
+    net_benefit_all = []
+    net_benefit_none = 0  # Net benefit of treat-none is always 0
+
+    for threshold in thresholds:
+        treat_model = (y_prob >= threshold).astype(int)
+        tp_model = np.sum((y_true == 1) & (treat_model == 1))
+        fp_model = np.sum((y_true == 0) & (treat_model == 1))
+        prob_tp = tp_model / len(y_true)
+        prob_fp = fp_model / len(y_true)
+        net_benefit = prob_tp - (prob_fp * threshold / (1 - threshold))
+
+        # Only include net benefit >= 0
+        if net_benefit >= 0:
+            net_benefit_model.append(net_benefit)
+            net_benefit_all.append((np.sum(y_true == 1) / len(y_true)) - (np.sum(y_true == 0) / len(y_true)) * (threshold / (1 - threshold)))
+        else:
+            net_benefit_model.append(None)
+            net_benefit_all.append(None)
+
+    results = {
+        'thresholds': thresholds,
+        'net_benefit_model': net_benefit_model,
+        'net_benefit_all': net_benefit_all,
+        'net_benefit_none': [net_benefit_none] * len(thresholds)
+    }
+    return results
+    
 def plot_roc_and_calibration_test(models, X_test, y_test, log_dir, model_names):
     """
     Plot ROC and Calibration curves for multiple models on the test set.
@@ -103,38 +146,94 @@ def plot_roc_and_calibration_test(models, X_test, y_test, log_dir, model_names):
     model_names (list): List of model names corresponding to the models list.
     """
     
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(18, 6))
 
     # Subplot for ROC Curve
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     for model, name in zip(models, model_names):
-        y_test_pred_proba = model.predict_proba(X_test)[:, 1]
-        fpr, tpr, _ = roc_curve(y_test, y_test_pred_proba)
-        plt.plot(fpr, tpr, marker='.', label=f'{name} ROC curve (area = %0.2f)' % auc(fpr, tpr))
+        try:
+            y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+            fpr, tpr, _ = roc_curve(y_test, y_test_pred_proba)
+            
+            # Highlight Stacking and Calibrated Stacking Models
+            if name == 'Stacking Model':
+                plt.plot(fpr, tpr, label=f'{name} (AUC = {auc(fpr, tpr):.2f})', color='yellow', linewidth=2)
+            elif name == 'Calibrated Stacking Model':
+                plt.plot(fpr, tpr, label=f'{name} (AUC = {auc(fpr, tpr):.2f})', color='orange', linewidth=2)
+            elif "Calibrated" in name:
+                plt.plot(fpr, tpr, color='darkgray', linestyle='--', alpha=0.7)  # Dark gray for calibrated models
+            else:
+                plt.plot(fpr, tpr, color='lightgray', linestyle='--', alpha=0.5)  # Light gray for uncalibrated models
+        except Exception as e:
+            print(f"Failed to calculate ROC for {name}: {e}")
     
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
-    plt.title('Receiver Operating Characteristic curve')
+    plt.plot([0, 1], [0, 1], linestyle='--', color='black', label='Chance')
+    plt.title('ROC Curve')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.legend(loc="lower right")
-    plt.legend()
-    
+
     # Subplot for Calibration Curve
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     for model, name in zip(models, model_names):
-        y_test_pred_proba = model.predict_proba(X_test)[:, 1]
-        prob_true, prob_pred = calibration_curve(y_test, y_test_pred_proba, n_bins=10)
-        plt.plot(prob_pred, prob_true, marker='.', label=name)
-    
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Perfectly Calibrated')
+        try:
+            y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+            prob_true, prob_pred = calibration_curve(y_test, y_test_pred_proba, n_bins=10)
+            
+            # Highlight Stacking and Calibrated Stacking Models
+            if name == 'Stacking Model':
+                plt.plot(prob_pred, prob_true, label=name, color='yellow', linewidth=2)
+            elif name == 'Calibrated Stacking Model':
+                plt.plot(prob_pred, prob_true, label=name, color='orange', linewidth=2)
+            elif "Calibrated" in name:
+                plt.plot(prob_pred, prob_true, color='darkgray', linestyle='--', alpha=0.7)  # Dark gray for calibrated models
+            else:
+                plt.plot(prob_pred, prob_true, color='lightgray', linestyle='--', alpha=0.5)  # Light gray for uncalibrated models
+        except Exception as e:
+            print(f"Failed to calculate Calibration Curve for {name}: {e}")
+
+    plt.plot([0, 1], [0, 1], linestyle='--', color='black', label='Perfectly Calibrated')
     plt.title('Calibration Curve')
     plt.xlabel('Mean Predicted Probability')
     plt.ylabel('Fraction of Positives')
     plt.legend(loc="lower right")
-    
+
+    # Subplot for Decision Curve Analysis (DCA)
+    plt.subplot(1, 3, 3)
+    for model, name in zip(models, model_names):
+        try:
+            y_test_pred_proba = model.predict_proba(X_test)[:, 1]
+            dca_results = decision_curve_analysis(y_test, y_test_pred_proba)
+
+            # Extract valid net benefits and thresholds
+            filtered_thresholds = [t for t, nb in zip(dca_results['thresholds'], dca_results['net_benefit_model']) if nb is not None]
+            filtered_net_benefit_model = [nb for nb in dca_results['net_benefit_model'] if nb is not None]
+            filtered_net_benefit_all = [nb for nb in dca_results['net_benefit_all'] if nb is not None]
+
+            # Highlight Stacking and Calibrated Stacking Models
+            if name == 'Stacking Model':
+                plt.plot(filtered_thresholds, filtered_net_benefit_model, label=name, color='yellow', linewidth=2)
+            elif name == 'Calibrated Stacking Model':
+                plt.plot(filtered_thresholds, filtered_net_benefit_model, label=name, color='orange', linewidth=2)
+            elif "Calibrated" in name:
+                plt.plot(filtered_thresholds, filtered_net_benefit_model, color='darkgray', linestyle='--', alpha=0.7)  # Dark gray for calibrated models
+            else:
+                plt.plot(filtered_thresholds, filtered_net_benefit_model, color='lightgray', linestyle='--', alpha=0.5)  # Light gray for uncalibrated models
+        except Exception as e:
+            print(f"Failed to calculate DCA for {name}: {e}")
+
+    # Plot reference lines
+    plt.axhline(0, color='red', linestyle='--', label='Treat None')
+    plt.plot(filtered_thresholds, filtered_net_benefit_all, linestyle='--', color='green', label='Treat All')
+    plt.title('Decision Curve Analysis (Net Benefit ≥ 0)')
+    plt.xlabel('Threshold Probability')
+    plt.ylabel('Net Benefit')
+    plt.legend(loc="lower right")
+
+    # Final adjustments and save
     plt.tight_layout()
+    plt.savefig(os.path.join(log_dir, 'model_evaluation_with_stacking_calibration_highlight.png'))
     plt.show()
-    plt.savefig(os.path.join(log_dir, 'roc_curve & Calibration curve.png'))
             
 def plot_tsne(features, labels, epoch, log_dir):
     tsne = TSNE(n_components=2, random_state=42)

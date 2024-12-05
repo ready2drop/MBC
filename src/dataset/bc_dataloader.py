@@ -34,7 +34,7 @@ class CustomDataset(Dataset):
             # transforms.Zoom(zoom=1.2),
             # transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Resize(spatial_size=(256, 256, 32)),
-            transforms.AdjustContrast(gamma=2),
+            transforms.AdjustContrast(gamma=3),
             transforms.RandFlip(prob=0.1, spatial_axis=0),
             transforms.RandFlip(prob=0.1, spatial_axis=1),
             transforms.RandFlip(prob=0.1, spatial_axis=2),
@@ -59,7 +59,7 @@ class CustomDataset(Dataset):
             # transforms.CropForeground(),
             # transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Resize(spatial_size=(256, 256, 32)),
-            transforms.AdjustContrast(gamma=2),
+            transforms.AdjustContrast(gamma=3),
             transforms.ToTensor(),
         ])
         
@@ -79,7 +79,7 @@ class CustomDataset(Dataset):
             # transforms.SpatialCrop(roi_center=(200, 200, 0), roi_size=(256,256,1000)),
             # transforms.Resize(spatial_size=(96, 96, 96)),
             transforms.Resize(spatial_size=(256, 256, 32)),
-            transforms.AdjustContrast(gamma=2),
+            transforms.AdjustContrast(gamma=3),
             transforms.ToTensor(),
         ])
         

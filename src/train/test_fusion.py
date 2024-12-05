@@ -15,10 +15,20 @@ import torch
 from src.dataset.bc_dataloader import getloader_bc
 from src.model.image_encoder import ImageEncoder3D_earlyfusion, ImageEncoder3D_latefusion
 from src.model.tabular_encoder import TabularEncoder_earlyfusion, TabularEncoder_latefusion
-
 from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve, plot_roc_and_calibration_test, save_feature_importance
 
-from pytorch_tabnet.tab_model import TabNetClassifier
+# from sklearn.linear_model import LogisticRegression
+# from sklearn.naive_bayes import GaussianNB
+# from sklearn.svm import SVC
+# from sklearn.tree import DecisionTreeClassifier
+# from pytorch_tabnet.tab_model import TabNetClassifier
+# from pytorch_tabnet.pretraining import TabNetPretrainer
+# from xgboost import XGBClassifier
+# from lightgbm import LGBMClassifier
+# from catboost import CatBoostClassifier
+# from sklearn.ensemble import *
+# from sklearn.calibration import CalibratedClassifierCV
+# from pytorch_tabnet.tab_model import TabNetClassifier
 from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve, auc, accuracy_score, recall_score, precision_score
 
 def seed_everything(seed):
@@ -38,38 +48,36 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}, Available GPUs: {torch.cuda.device_count()}")
 
 parser = argparse.ArgumentParser(description="Multimodal Bile duct stone Classfier")
-parser.add_argument("--epochs", default=100, type=int, help="Epoch")
-parser.add_argument("--val_every", default=10, type=int, help="Learning rate")
-parser.add_argument("--learning_rate", default=1e-4, type=float, help="Learning rate")
-parser.add_argument("--reg_weight", default=1e-5, type=float, help="regularization weight")
-parser.add_argument("--optimizer", default='adamw', type=str, help="Type of Optimizer") # 'adam', 'rmsprop'
-parser.add_argument("--momentum", default=0.0, type=float, help="Add momentum for SGD optimizer")
-parser.add_argument("--loss_function", default='BCE', type=str, help="Type of Loss function")
-parser.add_argument("--scheduler", default='warmup_cosine', type=str, help="Type of Learning rate scheduler") # 'stepLR','CosineAnnealingLR'
-parser.add_argument("--batch_size", default=15, type=int, help="Batch size")
-parser.add_argument("--num_gpus", default=5, type=int, help="Number of GPUs")
-parser.add_argument("--num_classes", default=1, type=int, help="Assuming binary classification")
-parser.add_argument("--use_parallel", action='store_true', help="Use Weights and Biases for logging")
+parser.add_argument("--batch_size", default=50, type=int, help="Batch size")
 parser.add_argument("--use_wandb", action='store_true', help="Use Weights and Biases for logging")
 parser.add_argument("--model_architecture", default='ViT', type=str, help="Model architecture")
 parser.add_argument("--data_path", default='/home/rkdtjdals97/datasets/DUMC_nifti_crop/', type=str, help="Directory of dataset")
 parser.add_argument("--image_pretrain_path", default=None, type=str, help="pretrained weight path")
-parser.add_argument("--tabnet_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-11-13-16-39-train-mm/tabnet_19.zip', type=str, help="finetuned weight path")
-parser.add_argument("--xgboost_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-11-13-16-39-train-mm/xgb_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--lightgbm_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-11-13-16-39-train-mm/lgbm_model.pkl', type=str, help="finetuned weight path")
-parser.add_argument("--rf_ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-11-13-16-39-train-mm/rf_model.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--ckpt_path", default='/home/rkdtjdals97/MBC/logs/2024-12-04-20-18-train-mm-ViT/', type=str, help="finetuned weight path")
+parser.add_argument("--xgboost_ckpt_path", default='xgboost_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--lightgbm_ckpt_path", default='lightgbm_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--rf_ckpt_path", default='randomforest_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--adaboost_ckpt_path", default='adaboost_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--logreg_ckpt_path", default='logistic_regression_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--naivebayes_ckpt_path", default='naive_bayes_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--svm_ckpt_path", default='svm_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--decisiontree_ckpt_path", default='decision_tree_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--catboost_ckpt_path", default='catboost_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--tabnet_ckpt_path", default='tabnet_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--stacking_ckpt_path", default='stacking_model_model_12.pkl', type=str, help="finetuned weight path")
+parser.add_argument("--calibration_stacking_ckpt_path", default='calibrated_stacking_model_model_12.pkl', type=str, help="finetuned weight path")
 parser.add_argument("--excel_file", default='dumc_1024a.csv', type=str, help="tabular data")
 parser.add_argument("--data_shape", default='3d', type=str, help="Input data shape") # '3d','2d'
 parser.add_argument("--log_dir", default='logs/', type=str, help="log directory")
 parser.add_argument("--mode", default='test', type=str, help="mode") # 'train', 'test'
 parser.add_argument("--modality", default='mm', type=str, help="modality") # 'mm', 'image', 'tabular'
 parser.add_argument("--output_dim", default=128, type=int, help="output dimension") # output dimension of each encoder
-parser.add_argument("--input_dim", default=19, type=int, help="num_features") # tabular features
+parser.add_argument("--input_dim", default=12, type=int, help="num_features") # tabular features
 parser.add_argument("--fusion", default='early', type=str, help="num_features") # 'early','intermediate', 'late'
 parser.add_argument("--phase", default='combine', type=str, help="CT phase") # 'portal', 'pre-enhance', 'combine'
 
 args = parser.parse_args()
-args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.modality,args.model_architecture)
+args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.model_architecture)
 
 PARAMS = vars(args)
 PARAMS = get_model_parameters(PARAMS)
@@ -131,10 +139,20 @@ if PARAMS['fusion'] == 'late':
     # Convert probabilities to binary predictions
     test_preds_binary = (test_preds > 0.5).astype(int)
 
-    # Evaluate
-    test_accuracy = accuracy_score(test_targets, test_preds_binary)
+    # Evaluate metrics
+    accuracy = accuracy_score(test_targets, test_preds_binary)
+    auc = roc_auc_score(test_targets, test_preds)
+    sensitivity = recall_score(test_targets, test_preds_binary)  # Sensitivity (Recall)
 
-    print(f'Test Accuracy: {test_accuracy}')
+    # Specificity calculation
+    tn, fp, _, _ = confusion_matrix(test_targets, test_preds_binary).ravel()
+    specificity = tn / (tn + fp)
+
+    # Print results
+    print(f'Test Accuracy: {accuracy:.4f}')
+    print(f'AUC: {auc:.4f}')
+    print(f'Sensitivity (Recall): {sensitivity:.4f}')
+    print(f'Specificity: {specificity:.4f}')
 
 else:
     image_encoder.eval()
@@ -196,50 +214,49 @@ else:
         
         # return test_auc
 
-    # Load and evaluate RandomForest model
-    with open(PARAMS['xgboost_ckpt_path'], 'rb') as f:
-        xgb_model = pickle.load(f)
-    print("Evaluating XGBoost Model")
-    evaluate_model(xgb_model, X_test, y_test, 'XGBoost')
+    model_paths = {
+    'XGBoost': os.path.join(PARAMS['ckpt_path'], PARAMS['xgboost_ckpt_path']),
+    'LightGBM': os.path.join(PARAMS['ckpt_path'], PARAMS['lightgbm_ckpt_path']),
+    'RandomForest': os.path.join(PARAMS['ckpt_path'], PARAMS['rf_ckpt_path']),
+    'AdaBoost': os.path.join(PARAMS['ckpt_path'], PARAMS['adaboost_ckpt_path']),
+    'Logistic Regression': os.path.join(PARAMS['ckpt_path'], PARAMS['logreg_ckpt_path']),
+    'Naive Bayes': os.path.join(PARAMS['ckpt_path'], PARAMS['naivebayes_ckpt_path']),
+    'SVM': os.path.join(PARAMS['ckpt_path'], PARAMS['svm_ckpt_path']),
+    'Decision Tree': os.path.join(PARAMS['ckpt_path'], PARAMS['decisiontree_ckpt_path']),
+    'CatBoost': os.path.join(PARAMS['ckpt_path'], PARAMS['catboost_ckpt_path']),
+    'TabNet': os.path.join(PARAMS['ckpt_path'], PARAMS['tabnet_ckpt_path']),
+    'Stacking Model': os.path.join(PARAMS['ckpt_path'], PARAMS['stacking_ckpt_path']),
+    'Calibrated Stacking Model': os.path.join(PARAMS['ckpt_path'], PARAMS['calibration_stacking_ckpt_path'])
+    }
 
-    # Load and evaluate RandomForest model
-    with open(PARAMS['lightgbm_ckpt_path'], 'rb') as f:
-        lgbm_model = pickle.load(f)
-    print("Evaluating LightGBM Model")
-    evaluate_model(lgbm_model, X_test, y_test, 'LightGBM')
-
-    # Load and evaluate RandomForest model
-    with open(PARAMS['rf_ckpt_path'], 'rb') as f:
-        rf_model = pickle.load(f)
-    print("Evaluating RandomForest Model")
-    evaluate_model(rf_model, X_test, y_test, 'RandomForest')
-
-    # Set tabnet_params
-    tabnet_params = {"cat_emb_dim":2,
-                "optimizer_fn":torch.optim.Adam,
-                "optimizer_params":dict(lr=2e-2),
-                "scheduler_params":{"step_size":50, # how to use learning rate scheduler
-                                "gamma":0.9},
-                "scheduler_fn":torch.optim.lr_scheduler.StepLR,
-                "mask_type":'sparsemax', # "entmax"
-            }
-
-    # Adjust tabnet_params to include combined_dim
-    tabnet_params['input_dim'] = combined_dim
-    tabnet_params['output_dim'] = PARAMS['num_classes']
+    # Function to load and evaluate models
+    def load_and_evaluate_models(model_paths, X_test, y_test):
+        models = []
+        model_names = []
         
-    tabnet_clf = TabNetClassifier(**tabnet_params
-                        )
-
-    tabnet_clf.load_model(PARAMS['tabnet_ckpt_path'])        
-    print("Evaluating TabNet Model")
-    evaluate_model(tabnet_clf, X_test, y_test, 'TabNet')
-
-
-    # List of models
-    models = [xgb_model, lgbm_model, rf_model, tabnet_clf]
-    # Corresponding model names
-    model_names = ['XGBoost','LightGBM', 'Random Forest','TabNet']
+        for model_name, ckpt_path in model_paths.items():
+            # Load the model
+            with open(ckpt_path, 'rb') as f:
+                model = pickle.load(f)
+            
+            # Append the model and its name to the lists
+            models.append(model)
+            model_names.append(model_name)
+            
+            # Evaluate the model
+            print(f"Evaluating {model_name} Model")
+            evaluate_model(model, X_test, y_test, model_name)
+        
+        return models, model_names
+            
+    # Call the function to load and evaluate models
+    models, model_names = load_and_evaluate_models(model_paths, X_test, y_test)
     
-    plot_roc_and_calibration_test(models, X_test, y_test, args.log_dir, model_names) 
+    
+
+    # Call the function to plot ROC and calibration curves for all models
+    plot_roc_and_calibration_test(models, X_test, y_test, args.log_dir, model_names)
+
+
+
 
