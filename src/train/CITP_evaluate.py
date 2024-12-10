@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from src.model.CITP_model import CITPModel, CITPModel_classifier
 from src.dataset.bc_dataloader import getloader_bc
 from src.utils.util import logdir, get_model_parameters, save_confusion_matrix_roc_curve
+from sklearn.metrics import accuracy_score, roc_auc_score, recall_score, confusion_matrix
 
 
 
@@ -40,7 +41,7 @@ def main(dict, device):
     
     model.eval()
     total_correct, total_samples = 0,0 
-    targets_all, predicted_all = [], []
+    all_targets, all_preds = [], []
     
     with torch.no_grad():
         for images, features, labels, _ in data_loader:
@@ -49,16 +50,39 @@ def main(dict, device):
             preds = (outputs > 0.5).float()
             total_correct += (preds == labels).sum().item()
             total_samples += labels.size(0)
-            targets_all.append(labels.item())
-            predicted_all.append(preds.item())
+            all_targets.append(labels.item())
+            all_preds.append(preds.item())
             
             if dict.get('use_wandb', False):
                 wandb.log({"test_accuracy": (preds == labels).sum().item() / labels.size(0)})
     
-        test_acc = total_correct / total_samples             
-                  
-    print(f"Test: Epoch Accuracy: {test_acc}")
-    save_confusion_matrix_roc_curve(targets_all, predicted_all, dict['log_dir'], dict['model_architecture'])
+        
+        
+    # Calculate metrics
+    accuracy = accuracy_score(all_targets, (np.array(all_preds) > 0.5).astype(int))
+    auc = roc_auc_score(all_targets, all_preds)
+    sensitivity = recall_score(all_targets, (np.array(all_preds) > 0.5).astype(int))  # Sensitivity (Recall)
+    
+    # Specificity calculation
+    tn, fp, _, _ = confusion_matrix(all_targets, (np.array(all_preds) > 0.5).astype(int)).ravel()
+    specificity = tn / (tn + fp)
+
+    # Print metrics
+    print(f"Test Accuracy: {accuracy:.4f}")
+    print(f"AUC: {auc:.4f}")
+    print(f"Sensitivity: {sensitivity:.4f}")
+    print(f"Specificity: {specificity:.4f}")
+    
+    # Save results to Wandb if enabled
+    if dict.get('use_wandb', False):
+        wandb.log({
+            "test_accuracy": accuracy,
+            "test_auc": auc,
+            "test_sensitivity": sensitivity,
+            "test_specificity": specificity
+        })              
+
+    save_confusion_matrix_roc_curve(all_targets, all_preds, dict['log_dir'], dict['model_architecture'])
     
     
     
@@ -85,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_dim", default=19, type=int, help="tabular feature num") 
 
     args = parser.parse_args()
-    args.log_dir = logdir(args.log_dir, args.mode, args.modality)
+    args.log_dir = logdir(args.log_dir, args.mode, args.modality, args.model_architecture)
 
     PARAMS = vars(args)
     PARAMS = get_model_parameters(PARAMS)
